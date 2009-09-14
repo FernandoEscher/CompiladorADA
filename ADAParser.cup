@@ -90,14 +90,18 @@ raiz				::= lista_compilacion
 lista_compilacion		::= unidad_compilacion
 			  	  | lista_compilacion unidad_compilacion
 				;
+
 unidad_compilacion		::= especificacion_contexto declaracion_subprograma
 				  | especificacion_contexto cuerpo_subprograma
 				;
+
 especificacion_contexto		::=
 				  | especificacion_contexto clausula_with clausula_use_variante
 				;
+
 clausula_with			::= WITH lista_nombre PUNTO_Y_COMA
 				;
+
 clausula_use_variante		::= 
 				  | clausula_use
 				;
