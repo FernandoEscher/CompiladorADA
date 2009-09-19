@@ -270,7 +270,6 @@ cuerpo_subprograma 		::= especific_subprograma_es
 					parte_declarativa 
 				    BEGIN 
 					secuencia_de_sentencias
-				    excepcion_variante 
 				    END designador_variante PUNTO_Y_COMA
 				  ;
 
@@ -286,7 +285,6 @@ parte_declarativa 		::= lista_declarativa_item0
 
 lista_declarativa_item0		::= 
 				  | lista_declarativa_item0 declaracion
-				 // | lista_declarativa_item0 use_clause
 				  ;
 
 lista_componente_programa0	::= 
@@ -320,20 +318,63 @@ sentencia_simple		::= sentencia_nula
 				  | sentencia_asignacion
 				  | sentencia_salida
                                   | sentencia_retorno
-                                  | sentencia_goto
+				  | sentencia_goto 
 				  | llamada_procedimiento
-				  | sentencia_retraso
-				  | sentencia_aborto
-				  | sentencia_levantamiento
-				  | sentencia_codigo
 				  ;
 
 sentencia_compuesta		::= sentencia_if
-				  //| sentencia_case
 				  | sentencia_loop
-				  | sentencia_accept
-				  //| sentencia_select
-				  | bloque
+				  ;
+
+sentencia_nula			::= NULL PUNTO_Y_COMA
+				  ;
+
+sentencia_asignacion		::= name ASIGNACION expresion PUNTO_Y_COMA
+				  ;
+
+sentencia_salida		::= EXIT nombre_variante when_variante PUNTO_Y_COMA
+				  ; 
+
+sentencia_goto			::= GOTO name PUNTO_Y_COMA
+				  ;
+
+nombre_variante			::= 
+				  | nombre
+				  ;
+
+when_variante			::= 
+				  | WHEN condicion
+				  ;
+
+sentencia_retorno		::= RETURN PUNTO_Y_COMA
+				  | RETURN expresion PUNTO_Y_COMA
+				  ;
+
+sentencia_if			::= IF condicion THEN secuencia_de_sentencias lista_elsif0 else_variante END IF PUNTO_Y_COMA
+				  ;
+
+lista_elsif0			::= 
+				  | lista_elsif0
+				  | ELSIF condicion THEN secuencia_de_sentencias
+				  ;
+
+else_variante			::=
+				  | ELSE secuencia_de_sentencias
+				  ;
+
+condicion			::= expresion
+				  ;
+
+sentencia_loop			::= iteracion_clausula_variante loop_basico PUNTO_Y_COMA
+				  | IDENTIFICADOR DOS_PUNTOS iteracion_clausula_variante loop_basico IDENTIFICADOR PUNTO_Y_COMA
+				  ;
+
+loop_basico			::= LOOP secuencia_de_sentencias END LOOP
+				  ;
+
+iteracion_clausula_opcion	::= 
+				  | FOR IDENTIFICADOR IN rango_discreto
+				  | WHILE condicion
 				  ;
 
 
