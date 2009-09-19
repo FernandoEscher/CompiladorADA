@@ -78,8 +78,8 @@ terminal String CADENA_LITERAL;
 
 /*No terminales*/
 
-non terminal raiz, lista_compilacion, unidad_compilacion, especificacion_contexto, declaracion_subprograma, cuerpo_subprograma;
-non terminal clausula_with, clausula_use_variante, clausula_use, lista_nombre, nombre, especific_subprograma, parte_formal_variante;
+non terminal raiz, lista_compilacion, unidad_compilacion, declaracion_subprograma, cuerpo_subprograma;
+non terminal lista_nombre, nombre, especific_subprograma, parte_formal_variante;
 non terminal indicacion_subtipo, designador, parte_formal, lista_declaracion_parametro, declaracion_parametro, modo, inicializacion_opcion;
 non terminal operador_simbolo, lista_identificador2;
 
@@ -93,22 +93,8 @@ lista_compilacion		::= unidad_compilacion
 			  	  | lista_compilacion unidad_compilacion
 				;
 
-unidad_compilacion		::= especificacion_contexto declaracion_subprograma
-				  | especificacion_contexto cuerpo_subprograma
-				;
-
-especificacion_contexto		::=
-				  | especificacion_contexto clausula_with clausula_use_variante
-				;
-
-clausula_with			::= WITH lista_nombre PUNTO_Y_COMA
-				;
-
-clausula_use_variante		::= 
-				  | clausula_use
-				;
-
-clausula_use			::= USE lista_nombre PUNTO_Y_COMA
+unidad_compilacion		::=  declaracion_subprograma
+				  |  cuerpo_subprograma
 				;
 
 lista_nombre			::= nombre
