@@ -49,7 +49,7 @@ parser code {:
        error it will display the line and column number of where the
        fatal error occurred in the input as well as the reason for the
        fatal error which is passed into the method in the object
-       'message' and then exit.*/
+       'message' and then exit.*/sequence
     public void report_fatal_error(String message, Object info) {
         report_error(message, info);
         System.exit(1);
@@ -78,10 +78,11 @@ terminal String CADENA_LITERAL;
 
 /*No terminales*/
 
-non terminal raiz, lista_compilacion, unidad_compilacion, declaracion_subprograma, cuerpo_subprograma;
-non terminal lista_nombre, nombre, especific_subprograma, parte_formal_variante;
+non terminal raiz, lista_compilacion, unidad_compilacion, declaracion_subprograma, cuerpo_subprograma, expresion, primario, asignador, literal;
+non terminal lista_nombre, nombre, especific_subprograma, parte_formal_variante, expresion_and, expresion_or, expresion_xor, expresion_andthen;
 non terminal indicacion_subtipo, designador, parte_formal, lista_declaracion_parametro, declaracion_parametro, modo, inicializacion_opcion;
-non terminal operador_simbolo, lista_identificador2;
+non terminal operador_simbolo, lista_identificador2, lista_terminos, operador_suma, termino, operador_multiplicacion, factor, literal_numerico;
+non terminal expresion_orelse, relacion, rango, restriccion_rango, expresion_simple, operador_relacional, operador_membresia, operador_unario;
 
 /*---------------Gramatica--------------------*/
 start with raiz;
@@ -96,17 +97,18 @@ lista_compilacion		::= unidad_compilacion
 unidad_compilacion		::=  declaracion_subprograma
 				  |  cuerpo_subprograma
 				;
-
+/*
 lista_nombre			::= nombre
 				  | lista_nombre COMA nombre
 				;
+*/
 
 nombre				::= IDENTIFICADOR
-			/*	  | componente_indexado
-				  | componente_seleccionado
-				  | atributo
-				  | llamado_funcion
-			*/
+			//	  | componente_indexado
+			//	  | componente_seleccionado
+			//	  | atributo
+			//	  | llamado_funcion
+			
 				  | operador_simbolo
 				;
 
@@ -149,9 +151,187 @@ modo				::=
 				;
 
 inicializacion_opcion		::= 
-				//  | ASIGNACION expresion
+				  | ASIGNACION expresion
 				;
 
 lista_identificador2		::= IDENTIFICADOR COMA IDENTIFICADOR
 				  | lista_identificador2 COMA IDENTIFICADOR
 				;
+
+expresion 			::= relacion
+				  | expresion_and
+				  | expresion_or
+				  | expresion_xor
+				  | expresion_andthen
+				  | expresion_orelse
+				  ;
+
+expresion_and			::= relacion AND relacion
+				  | expresion_and AND relacion
+				  ;
+
+expresion_or			::= relacion OR relacion
+				  | expresion_or OR relacion
+				  ;
+
+expresion_xor			::= relacion XOR relacion
+				  | expresion_xor XOR relacion
+				  ;
+
+expresion_andthen		::= relacion AND THEN relacion
+				  | expresion_andthen AND THEN relacion
+				  ;
+
+expresion_orelse		::= relacion OR ELSE relacion
+				  | expresion_orelse OR ELSE relacion
+				  ;
+
+relacion			::= expresion_simple
+				  | expresion_simple operador_relacional expresion_simple
+				  | expresion_simple operador_membresia indicacion_subtipo
+				  | expresion_simple operador_membresia rango
+				  ;
+
+rango				::= expresion_simple RANGO expresion_simple
+				  ;
+/*
+restriccion_rango		::= RANGE rango
+				  ;
+*/
+expresion_simple		::= lista_terminos
+				  | operador_unario lista_terminos
+				  ;
+
+operador_relacional		::= IGUAL
+				  | DISTINTO_DE
+				  | MENOR_QUE
+				  | MAYOR_QUE
+				  | MAYOR_IGUAL_QUE
+				  | MENOR_IGUAL_QUE
+				  ;
+
+operador_membresia		::= IN
+				  | NOT IN
+				  ;
+
+
+operador_unario			::= MAS
+				  | MENOS
+				  ;
+
+operador_suma			::= MAS
+				  | MENOS
+				  | CONCATENAR
+				  ;
+
+operador_multiplicacion		::= MULTIPLICACION
+				  | DIVISION
+				  | MOD
+				  | REM
+				  ;
+
+lista_terminos			::= termino
+				  | lista_terminos operador_suma termino
+				  ;
+
+termino				::= factor
+				  | termino operador_multiplicacion factor
+				  ;
+
+factor				::= primario
+				  | ABS primario
+				  | NOT primario
+				  | primario EXPONENTE primario
+				  ;
+
+primario			::= nombre
+//				  | agregado
+				  | asignador
+//				  | expresion_calificada
+				  | PAR_IZQ expresion PAR_DER
+				  ;
+
+asignador			::= NEW nombre
+				  ;
+
+literal				::= NULL
+				  | literal_numerico
+				  | CADENA_LITERAL
+				  ;
+
+literal_numerico 		::= ENTERO_LITERAL
+				  | REAL_LITERAL
+				  ; 
+
+
+
+
+cuerpo_subprograma 		::= especific_subprograma_es 
+					parte_declarativa 
+				    BEGIN 
+					secuencia_de_sentencias
+				    excepcion_variante 
+				    END designador_variante PUNTO_Y_COMA
+				  ;
+
+especific_subprograma_es	::= PROCEDURE IDENTIFICADOR IS
+				  | PROCEDURE IDENTIFICADOR parte_formal IS
+				  | FUNCION designador parte_formal_variante RETURN indicacion_subtipo IS
+				  ;
+
+parte_declarativa 		::= lista_declarativa_item0
+				  | lista_declarativa_item0 lista_representacion_spec1 lista_componente_programa0
+				  | lista_declarativa_item0 cuerpo_o_stub lista_componente_programa0
+				  ;
+
+lista_declarativa_item0		::= 
+				  | lista_declarativa_item0 declaracion
+				 // | lista_declarativa_item0 use_clause
+				  ;
+
+lista_componente_programa0	::= 
+				  | lista_componente_programa0 componente_programa
+				  ;
+
+cuerpo_o_stub			::= cuerpo
+				  | cuerpo_stub
+				  ;
+
+cuerpo				::= subprograma_cuerpo
+				  | cuerpo_tarea
+				  ;
+
+secuencia_de_sentencias		::= sentencia
+				  | secuencia_de_sentencias sentencia
+				  ;
+
+sentencia			::= lista_etiqueta sentencia_simple
+				  | lista_etiqueta sentencia_compuesto
+				  ;
+
+lista_etiqueta			::= 
+				  | lista_etiqueta etiqueta
+				  ;
+
+etiqueta  			::=  ETIQUETA_IZQ IDENTIFICADOR ETIQUETA_DER
+				  ;
+
+sentencia_simple		::= sentencia_nula
+				  | sentencia_asignacion
+				  | sentencia_salida
+                                  | sentencia_retorno
+                                  | sentencia_goto
+				  | llamada_procedimiento
+				  | sentencia_retraso
+				  | sentencia_aborto
+				  | sentencia_levantamiento
+				  | sentencia_codigo
+				  ;
+
+sentencia_compuesta		::= sentencia_if
+				  //| sentencia_case
+				  | sentencia_loop
+				  | sentencia_accept
+				  //| sentencia_select
+				  | bloque
+				  ;

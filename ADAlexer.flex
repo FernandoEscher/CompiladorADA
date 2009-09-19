@@ -112,8 +112,8 @@ comentario = "--"({letra}|{digito}|{espacio} | "~" | "!" | "¡" | "@" | "#" | "$
 
 "&" 			{return symbol(sym.CONCATENAR);}
 "'" 			{return symbol(sym.TIC);}
-"(" 			{return symbol(sym.PAR_DER);}
-")" 			{return symbol(sym.PAR_IZQ);}
+"(" 			{return symbol(sym.PAR_IZQ);}
+")" 			{return symbol(sym.PAR_DER);}
 "*" 			{return symbol(sym.MULTIPLICACION);}
 "+" 			{return symbol(sym.MAS);}
 "," 			{return symbol(sym.COMA);}
@@ -133,8 +133,8 @@ comentario = "--"({letra}|{digito}|{espacio} | "~" | "!" | "¡" | "@" | "#" | "$
 "/=" 			{return symbol(sym.DISTINTO_DE);}
 ">=" 			{return symbol(sym.MAYOR_IGUAL_QUE);}
 "<=" 			{return symbol(sym.MENOR_IGUAL_QUE);}
-"<<" 			{return symbol(sym.ETIQUETA_DER);}
-">>" 			{return symbol(sym.ETIQUETA_IZQ);}
+"<<" 			{return symbol(sym.ETIQUETA_IZQ);}
+">>" 			{return symbol(sym.ETIQUETA_DER);}
 "<>"			{return symbol(sym.INDEFINIDO);}
 
 \"			{yybegin(YYCADENA); string.setLength(0);}
