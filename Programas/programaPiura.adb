@@ -1,6 +1,6 @@
 procedure x (x_d : in integer) is
 begin
-	if x = 4.4 and 10 > 9 and (x /= 8) and x.er = 4 then
+	if x = 4.4 and 10 > 9 and (x /= 8) and x = 4 then
 	x := 4;
 	x := 7;
 	return 10;

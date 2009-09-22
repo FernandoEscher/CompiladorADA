@@ -25,7 +25,7 @@ import java_cup.runtime.*;
 letra = [a-zA-Z]
 digito = [0-9]
 saltolinea = (\n | \r | \r\n)+
-espacio = (" " | {saltolinea} | \t\f)+
+espacio = (" " | {saltolinea} | \t | \f)+
 char = "'"{letra}"'"
 float = {digito}+"."{digito}+
 id = {letra}({digito}|{letra}|"_")*
@@ -109,6 +109,9 @@ comentario = "--"({letra}|{digito}|{espacio} | "~" | "!" | "¡" | "@" | "#" | "$
 "with" 			{return symbol(sym.WITH);}
 "xor"   		{return symbol(sym.XOR);}
 
+"put"			{return symbol(sym.PUT);}
+"get"			{return symbol(sym.GET);}
+
 
 "&" 			{return symbol(sym.CONCATENAR);}
 "'" 			{return symbol(sym.TIC);}
@@ -151,8 +154,10 @@ comentario = "--"({letra}|{digito}|{espacio} | "~" | "!" | "¡" | "@" | "#" | "$
 }
 
 <YYCADENA>{
-\"			{yybegin(YYINITIAL); return symbol(sym.CADENA_LITERAL, string);}
+
+\"			{yybegin(YYINITIAL);return symbol(sym.CADENA_LITERAL,string);}
 .			{string.append(yytext());}
+
 }
 
 

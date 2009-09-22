@@ -1,13 +1,5 @@
-with Ada.Text_Io,ada.integer_text_io,Ada.Float_Text_Io;
-use Ada.Text_Io,ada.integer_text_io,Ada.Float_Text_Io;
-
-
-
 
 procedure Sueldos is
-type arreglo is array (integer range <>) of float;
-
-
 A:arreglo(1..10);
 Mayor:float:=0.0;
 casilla,n:integer:=0;
