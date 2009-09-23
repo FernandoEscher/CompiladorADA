@@ -120,7 +120,7 @@ comentario = "--"({letra}|{digito}|{espacio} | "~" | "!" | "¡" | "@" | "#" | "$
 "*" 			{return symbol(sym.MULTIPLICACION);}
 "+" 			{return symbol(sym.MAS);}
 "," 			{return symbol(sym.COMA);}
-"–" 			{return symbol(sym.MENOS);}
+"-" 			{return symbol(sym.MENOS);}
 "." 			{return symbol(sym.PUNTO);}
 "/" 			{return symbol(sym.DIVISION);}
 ":" 			{return symbol(sym.DOS_PUNTOS);}

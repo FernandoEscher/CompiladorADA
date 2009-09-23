@@ -1,17 +1,17 @@
 
 procedure Sueldos is
-A:arreglo(1..10);
+A:arreglo;
 Mayor:float:=0.0;
 casilla,n:integer:=0;
-nombre,nombre1:string(1..20);
+nombre,nombre1:string;
 
 begin
 
-   for i in A'range loop
-      put("ingrese nombre del empleado ");new_line;
+   for i in 1..2 loop
+      put("ingrese nombre del empleado ");
       get_line(nombre,n);
-      put("Ingrese sueldo #"); put(i);new_line;
-      get(A(i));skip_line;
+      put("Ingrese sueldo #"); put(i);
+      get(A(i));
       if A(i) > mayor
          then
            Mayor:=A(i);
@@ -19,10 +19,10 @@ begin
            nombre1:=nombre;
       end if;
    end loop;
-   put ("el empleado con mayor sueldo es ");new_line;
-   put (nombre1);new_line; 
+   put ("el empleado con mayor sueldo es ");
+   put (nombre1);
    put ("su sueldo es ");
-   put(mayor,0,2,0);new_line;
+   put(mayor,0,2,0);
    put ("en la casilla ");
-   put(casilla);new_line;
+   put(casilla);
 end sueldos;

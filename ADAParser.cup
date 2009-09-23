@@ -5,19 +5,23 @@
 	    public void report_error(String message, Object info) {
 	   
 		StringBuffer m = new StringBuffer("Error");
+
+		if(message.equals("Syntax error"))
+			message = "Error sintáctico";
+		else if (message.equals("Couldn't repair and continue parse"))
+			message = "No se pudo recuperar para continuar el parseo";
 	   
 		if (info instanceof java_cup.runtime.Symbol) {
 		    java_cup.runtime.Symbol s = ((java_cup.runtime.Symbol) info);
 	   
 		    if (s.left >= 0) {                
-			m.append(" in line "+(s.left+1));   
+			m.append(" en la línea "+(s.left+1));   
 			if (s.right >= 0)                    
-			    m.append(", column "+(s.right+1));
+			    m.append(", columna "+(s.right+1));
 		    }
 		}
 	   
 		m.append(" : "+message);
-	   
 		System.err.println(m);
 	    }
 	   
@@ -56,12 +60,15 @@
 	non terminal lista_nombre, nombre, especific_subprograma, parte_formal_variante, expresion_and, expresion_or, expresion_xor, expresion_andthen;
 	non terminal indicacion_subtipo, designador, parte_formal, lista_declaracion_parametro, declaracion_parametro, modo, inicializacion_opcion;
 	non terminal operador_simbolo, lista_identificador2, lista_terminos, operador_suma, termino, operador_multiplicacion, factor, literal_numerico;
-	non terminal expresion_orelse, relacion, rango, restriccion_rango, expresion_simple, operador_relacional, operador_membresia, operador_unario;
+	non terminal expresion_orelse, relacion, rango, expresion_simple, operador_relacional, operador_membresia, operador_unario;
 	non terminal llamada_funcion, especific_subprograma_es, parte_declarativa, secuencia_de_sentencias, designador_variante, lista_declarativa_item0;
-	non terminal declaracion, cuerpo, subprograma_cuerpo, sentencia, lista_etiqueta, sentencia_simple, sentencia_compuesta, etiqueta, sentencia_nula;
-	non terminal sentencia_asignacion, sentencia_salida, sentencia_retorno, sentencia_goto, sentencia_if, sentencia_loop, condicion, lista_elsif;
-	non terminal else_variante, iteracion_clausula, loop_basico, declaracion_numero, lista_cuerpo0, nombre_variante, when_variante, lista_elsif0;
-	non terminal iteracion_clausula_variante, rango_discreto, lista_expresiones_variante, lista_expresiones, sentencia_put, sentencia_get; 
+	non terminal declaracion, cuerpo, sentencia, lista_etiqueta, sentencia_simple, sentencia_compuesta, etiqueta, sentencia_nula;
+	non terminal sentencia_asignacion, sentencia_salida, sentencia_retorno, sentencia_goto, sentencia_if, sentencia_loop, condicion;
+	non terminal else_variante, loop_basico, declaracion_numero, lista_cuerpo0, nombre_variante, when_variante, lista_elsif0;
+	non terminal iteracion_clausula_variante, lista_expresiones_variante, lista_expresiones, sentencia_put, sentencia_get; 
+	non terminal declaracion_record, definicion_record, lista_componentes, lista_declaracion_componentes0, declaracion_componente;
+	non terminal sentencia_llamada_funcion; 
+	
 
 	/*---------------Gramatica--------------------*/
 	start with raiz;
@@ -87,8 +94,6 @@
 					  | operador_simbolo
  					;
         
-//-----------------Declaracion de un subrpograma------------------->
-
 	declaracion_subprograma		::= especific_subprograma
 					;
 
@@ -171,12 +176,10 @@
 
 	rango				::= expresion_simple RANGO expresion_simple
 					  ;
-	/*
-	restriccion_rango		::= RANGE rango
-					  ;
-	*/
+
 	expresion_simple		::= lista_terminos
 					  | operador_unario lista_terminos
+					  | llamada_funcion
 					  ;
 
 	operador_relacional		::= IGUAL
@@ -208,7 +211,7 @@
 					  ;
 
 	lista_terminos			::= termino
-					  | lista_terminos:a operador_suma termino:b {:System.out.print(a + "+" + b);:}
+					  | lista_terminos operador_suma termino
 					  ;
 
 	termino				::= factor
@@ -291,7 +294,7 @@
 					  | sentencia_salida
 					  | sentencia_retorno
 					  | sentencia_goto 
-					  | llamada_funcion
+					  | sentencia_llamada_funcion
 					  | sentencia_put
 					  | sentencia_get
 					  ;
@@ -299,6 +302,9 @@
 	sentencia_compuesta		::= sentencia_if
 					  | sentencia_loop
 					  ;
+
+	sentencia_llamada_funcion	::= llamada_funcion PUNTO_Y_COMA
+					  ; 
 
 	sentencia_nula			::= NULL PUNTO_Y_COMA
 					  ;
@@ -363,13 +369,15 @@
 
 	declaracion                     ::= declaracion_numero 
 					  | declaracion_subprograma
+					  | declaracion_record
+					  | declaracion_componente
 					  ;
 
 	declaracion_numero		::= IDENTIFICADOR DOS_PUNTOS CONSTANT ASIGNACION expresion PUNTO_Y_COMA
 					  | lista_identificador2 DOS_PUNTOS CONSTANT ASIGNACION expresion PUNTO_Y_COMA
 					  ;
 	
-	llamada_funcion			::= nombre PAR_IZQ lista_expresiones_variante PAR_DER PUNTO_Y_COMA
+	llamada_funcion			::= nombre PAR_IZQ lista_expresiones_variante PAR_DER
 					  ;
 
 	lista_expresiones_variante	::=
@@ -379,3 +387,23 @@
 	lista_expresiones		::= expresion
 					  | lista_expresiones COMA expresion
 					  ;
+
+	declaracion_record		::= TYPE IDENTIFICADOR IS definicion_record PUNTO_Y_COMA
+					  ;
+
+	definicion_record		::= RECORD lista_componentes END RECORD
+					  ;
+
+	lista_componentes		::= lista_declaracion_componentes0
+					  | NULL PUNTO_Y_COMA
+					  ;
+
+	lista_declaracion_componentes0	::=
+					  | lista_declaracion_componentes0 declaracion_componente
+					  ;
+
+	declaracion_componente		::= IDENTIFICADOR DOS_PUNTOS indicacion_subtipo inicializacion_opcion PUNTO_Y_COMA
+					  | lista_identificador2 DOS_PUNTOS indicacion_subtipo inicializacion_opcion PUNTO_Y_COMA
+					  ;
+
+   

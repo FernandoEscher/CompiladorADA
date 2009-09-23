@@ -4,10 +4,10 @@ begin
 	get(n);
 	for i in 1..n loop
 		put("ingrese un numero");
-		get(n);
+		get(n)
 	end loop;
 	for i in 1..n loop
-		put("asd");
+		put(A(a));
 		N:=n-1;
 	end loop;
 end invertir;
