@@ -280,6 +280,7 @@
 
 	sentencia			::= lista_etiqueta sentencia_simple
 					  | lista_etiqueta sentencia_compuesta
+					  | error sentencia
 					  ;
 
 	lista_etiqueta			::= 
@@ -371,6 +372,7 @@
 					  | declaracion_subprograma
 					  | declaracion_record
 					  | declaracion_componente
+					  | error declaracion
 					  ;
 
 	declaracion_numero		::= IDENTIFICADOR DOS_PUNTOS CONSTANT ASIGNACION expresion PUNTO_Y_COMA

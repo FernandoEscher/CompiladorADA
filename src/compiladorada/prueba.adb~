@@ -1,0 +1,4 @@
+
+procedure "Holamundo" (x: in integer)
+
+function F (i: out float) return float
