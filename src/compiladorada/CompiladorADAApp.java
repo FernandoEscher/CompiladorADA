@@ -1,8 +1,10 @@
+package compiladorada;
+
 /*
  * CompiladorADAApp.java
  */
 
-package compiladorada;
+//package compiladorada;
 
 import org.jdesktop.application.Application;
 import org.jdesktop.application.SingleFrameApplication;

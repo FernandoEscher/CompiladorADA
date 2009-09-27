@@ -1,411 +1,421 @@
-	/* ----------------------Preliminary Declarations Section--------------------*/
-	   
-	parser code {:
-	    
-	    public void report_error(String message, Object info) {
-	   
-		StringBuffer m = new StringBuffer("Error");
+package compiladorada;
+import java.util.Stack;
 
-		if(message.equals("Syntax error"))
-			message = "Error sintáctico";
-		else if (message.equals("Couldn't repair and continue parse"))
-			message = "No se pudo recuperar para continuar el parseo";
-	   
-		if (info instanceof java_cup.runtime.Symbol) {
-		    java_cup.runtime.Symbol s = ((java_cup.runtime.Symbol) info);
-	   
-		    if (s.left >= 0) {                
-			m.append(" en la línea "+(s.left+1));   
-			if (s.right >= 0)                    
-			    m.append(", columna "+(s.right+1));
-		    }
-		}
-	   
-		m.append(" : "+message);
-		System.err.println(m);
-	    }
-	   
-	    public void report_fatal_error(String message, Object info) {
-		report_error(message, info);
-		System.exit(1);
-	    }
-	:};
 
-	/*---------------Declaracion de terminales y no terminales--------------------*/
+/* ----------------------Preliminary Declarations Section--------------------*/
 
-	/*Palabras reservadas*/
-	terminal ABORT, ABS, ABSTRACT, ACCEPT, ACCESS, ALIASED, ALL, AND, ARRAY, AT, BEGIN, BODY, CASE, CONSTANT, DECLARE, DELAY, DELTA, DIGITS, DO;
-	terminal ELSE, ELSIF, END, ENTRY, EXCEPTION, EXIT, FOR, FUNCTION, GENERIC, GOTO, IF, IN, IS, LIMITED, LOOP, MOD, NEW, NOT, NULL;
-	terminal OF, OR, OTHERS, OUT, PACKAGE, PRAGMA, PRIVATE, PROCEDURE, PROTECTED, RAISE, RANGE, RECORD, REM, RENAMES, REQUEUE, RETURN, REVERSE;
-	terminal SELECT, SEPARATE, SUBTYPE, TAGGED, TASK, TERMINATE, THEN, TYPE, UNTIL, USE, WHEN, WHILE, WITH, XOR;
+action code {:
+   public Stack pila = new Stack();
+:};
 
-	/*Delimitadores*/
-	terminal CONCATENAR, TIC, PAR_DER, PAR_IZQ, MULTIPLICACION, MAS, COMA, MENOS, PUNTO, DIVISION, DOS_PUNTOS, PUNTO_Y_COMA, MENOR_QUE, IGUAL;
-	terminal MAYOR_QUE, BARRA_VERTICAL, FLECHA, RANGO, EXPONENTE, ASIGNACION, DISTINTO_DE, MAYOR_IGUAL_QUE, MENOR_IGUAL_QUE, ETIQUETA_DER;
-	terminal ETIQUETA_IZQ, INDEFINIDO;
+parser code {:
 
-	/*extra*/
-	terminal PUT, GET;
+    public void report_error(String message, Object info) {
 
-	/*Literales*/
-	terminal int ENTERO_LITERAL;
-	terminal char CARACTER_LITERAL;
-	terminal float REAL_LITERAL;
-	terminal String IDENTIFICADOR;
-	terminal String CADENA_LITERAL;
+        StringBuffer m = new StringBuffer("Error");
 
-	/*No terminales*/
+        if(message.equals("Syntax error"))
+                message = "Error sintáctico";
+        else if (message.equals("Couldn't repair and continue parse"))
+		if(!action_obj.pila.empty())
+                    message = "Fin del archivo sin completar la sentencia " + action_obj.pila.pop();
+                else
+                    message = "No se pudo recuperar para continuar el parseo";
 
-	non terminal raiz, lista_compilacion, unidad_compilacion, declaracion_subprograma, cuerpo_subprograma, expresion, primario, asignador, literal;
-	non terminal lista_nombre, nombre, especific_subprograma, parte_formal_variante, expresion_and, expresion_or, expresion_xor, expresion_andthen;
-	non terminal indicacion_subtipo, designador, parte_formal, lista_declaracion_parametro, declaracion_parametro, modo, inicializacion_opcion;
-	non terminal operador_simbolo, lista_identificador2, lista_terminos, operador_suma, termino, operador_multiplicacion, factor, literal_numerico;
-	non terminal expresion_orelse, relacion, rango, expresion_simple, operador_relacional, operador_membresia, operador_unario;
-	non terminal llamada_funcion, especific_subprograma_es, parte_declarativa, secuencia_de_sentencias, designador_variante, lista_declarativa_item0;
-	non terminal declaracion, cuerpo, sentencia, lista_etiqueta, sentencia_simple, sentencia_compuesta, etiqueta, sentencia_nula;
-	non terminal sentencia_asignacion, sentencia_salida, sentencia_retorno, sentencia_goto, sentencia_if, sentencia_loop, condicion;
-	non terminal else_variante, loop_basico, declaracion_numero, lista_cuerpo0, nombre_variante, when_variante, lista_elsif0;
-	non terminal iteracion_clausula_variante, lista_expresiones_variante, lista_expresiones, sentencia_put, sentencia_get; 
-	non terminal declaracion_record, definicion_record, lista_componentes, lista_declaracion_componentes0, declaracion_componente;
-	non terminal sentencia_llamada_funcion; 
-	
+        if (info instanceof java_cup.runtime.Symbol) {
+            java_cup.runtime.Symbol s = ((java_cup.runtime.Symbol) info);
 
-	/*---------------Gramatica--------------------*/
-	start with raiz;
+            if (s.left >= 0) {
+                m.append(" en la línea "+(s.left+1));
+                if (s.right >= 0)
+                    m.append(", columna "+(s.right+1));
+            }
+        }
 
-	raiz				::= lista_compilacion
-					;
-
-	lista_compilacion		::= unidad_compilacion
-					  | lista_compilacion unidad_compilacion
-					;
-
-	unidad_compilacion		::=  declaracion_subprograma
-					  |  cuerpo_subprograma
-					;
-	/*
-	lista_nombre			::= nombre
-					  | lista_nombre COMA nombre
-					;
-	*/
-
-	nombre				::= IDENTIFICADOR
-        // 				  | llamada_funcion
-					  | operador_simbolo
- 					;
+        m.append(" : "+message);
+	System.err.println(m);
+    }
+    public void report_fatal_error(String message, Object info) {
+        report_error(message, info);
         
-	declaracion_subprograma		::= especific_subprograma
-					;
-
-	especific_subprograma		::= PROCEDURE IDENTIFICADOR parte_formal_variante
-					  | FUNCTION designador parte_formal_variante RETURN indicacion_subtipo	
-					;
-
-	designador			::= IDENTIFICADOR
-					  | operador_simbolo
-					;
-
-	operador_simbolo		::= CADENA_LITERAL
-					;
-
-	parte_formal_variante		::= 
-					  | parte_formal
-					;
-
-	parte_formal			::= PAR_IZQ lista_declaracion_parametro PAR_DER
-					;
-
-	indicacion_subtipo		::= nombre
-					;
-
-	lista_declaracion_parametro     ::= declaracion_parametro
-					  | lista_declaracion_parametro PUNTO_Y_COMA declaracion_parametro
-					;
-
-	declaracion_parametro 		::= IDENTIFICADOR DOS_PUNTOS modo indicacion_subtipo inicializacion_opcion
-					  | lista_identificador2 DOS_PUNTOS modo indicacion_subtipo inicializacion_opcion
-					;
-
-	modo				::= 
-					  | IN
-					  | OUT
-					  | IN OUT
-					;
-
-	inicializacion_opcion		::= 
-					  | ASIGNACION expresion
-					;
-
-	lista_identificador2		::= IDENTIFICADOR COMA IDENTIFICADOR
-					  | lista_identificador2 COMA IDENTIFICADOR
-					;
-
-	expresion 			::= relacion
-					  | expresion_and
-					  | expresion_or
-					  | expresion_xor
-					  | expresion_andthen
-					  | expresion_orelse
-					  ;
-
-	expresion_and			::= relacion AND relacion
-					  | expresion_and AND relacion
-					  ;
-
-	expresion_or			::= relacion OR relacion
-					  | expresion_or OR relacion
-					  ;
-
-	expresion_xor			::= relacion XOR relacion
-					  | expresion_xor XOR relacion
-					  ;
-
-	expresion_andthen		::= relacion AND THEN relacion
-					  | expresion_andthen AND THEN relacion
-					  ;
-
-	expresion_orelse		::= relacion OR ELSE relacion
-					  | expresion_orelse OR ELSE relacion
-					  ;
-
-	relacion			::= expresion_simple
-					  | expresion_simple operador_relacional expresion_simple
-					  | expresion_simple operador_membresia indicacion_subtipo
-					  | expresion_simple operador_membresia rango
-					  ;
-
-	rango				::= expresion_simple RANGO expresion_simple
-					  ;
-
-	expresion_simple		::= lista_terminos
-					  | operador_unario lista_terminos
-					  | llamada_funcion
-					  ;
-
-	operador_relacional		::= IGUAL
-					  | DISTINTO_DE
-					  | MENOR_QUE
-					  | MAYOR_QUE
-					  | MAYOR_IGUAL_QUE
-					  | MENOR_IGUAL_QUE
-					  ;
-
-	operador_membresia		::= IN
-					  | NOT IN
-					  ;
-
-
-	operador_unario			::= MAS
-					  | MENOS
-					  ;
+	//System.exit(1);
+    }
+:};
+
+/*---------------Declaracion de terminales y no terminales--------------------*/
+
+/*Palabras reservadas*/
+terminal ABORT, ABS, ABSTRACT, ACCEPT, ACCESS, ALIASED, ALL, AND, ARRAY, AT, BEGIN, BODY, CASE, CONSTANT, DECLARE, DELAY, DELTA, DIGITS, DO;
+terminal ELSE, ELSIF, END, ENTRY, EXCEPTION, EXIT, FOR, FUNCTION, GENERIC, GOTO, IF, IN, IS, LIMITED, LOOP, MOD, NEW, NOT, NULL;
+terminal OF, OR, OTHERS, OUT, PACKAGE, PRAGMA, PRIVATE, PROCEDURE, PROTECTED, RAISE, RANGE, RECORD, REM, RENAMES, REQUEUE, RETURN, REVERSE;
+terminal SELECT, SEPARATE, SUBTYPE, TAGGED, TASK, TERMINATE, THEN, TYPE, UNTIL, USE, WHEN, WHILE, WITH, XOR;
+
+/*Delimitadores*/
+terminal CONCATENAR, TIC, PAR_DER, PAR_IZQ, MULTIPLICACION, MAS, COMA, MENOS, PUNTO, DIVISION, DOS_PUNTOS, PUNTO_Y_COMA, MENOR_QUE, IGUAL;
+terminal MAYOR_QUE, BARRA_VERTICAL, FLECHA, RANGO, EXPONENTE, ASIGNACION, DISTINTO_DE, MAYOR_IGUAL_QUE, MENOR_IGUAL_QUE, ETIQUETA_DER;
+terminal ETIQUETA_IZQ, INDEFINIDO;
+
+/*extra*/
+terminal PUT, GET;
+
+/*Literales*/
+terminal int ENTERO_LITERAL;
+terminal char CARACTER_LITERAL;
+terminal float REAL_LITERAL;
+terminal String IDENTIFICADOR;
+terminal String CADENA_LITERAL;
+
+/*No terminales*/
+
+non terminal raiz, lista_compilacion, unidad_compilacion, declaracion_subprograma, cuerpo_subprograma, expresion, primario, asignador, literal;
+non terminal nombre, especific_subprograma, parte_formal_variante, expresion_and, expresion_or, expresion_xor, expresion_andthen;
+non terminal indicacion_subtipo, designador, parte_formal, lista_declaracion_parametro, declaracion_parametro, modo, inicializacion_opcion;
+non terminal operador_simbolo, lista_identificador2, lista_terminos, operador_suma, termino, operador_multiplicacion, factor, literal_numerico;
+non terminal expresion_orelse, relacion, rango, expresion_simple, operador_relacional, operador_membresia, operador_unario;
+non terminal llamada_funcion, especific_subprograma_es, parte_declarativa, secuencia_de_sentencias, designador_variante, lista_declarativa_item0;
+non terminal declaracion, cuerpo, sentencia, lista_etiqueta, sentencia_simple, sentencia_compuesta, etiqueta, sentencia_nula;
+non terminal sentencia_asignacion, sentencia_salida, sentencia_retorno, sentencia_goto, sentencia_if, sentencia_loop, condicion;
+non terminal else_variante, loop_basico, declaracion_numero, lista_cuerpo0, nombre_variante, when_variante, lista_elsif0;
+non terminal iteracion_clausula_variante, lista_expresiones_variante, lista_expresiones, sentencia_put, sentencia_get; 
+non terminal declaracion_record, definicion_record, lista_componentes, lista_declaracion_componentes0, declaracion_componente;
+non terminal sentencia_llamada_funcion; 
+
+
+/*---------------Gramatica--------------------*/
+start with raiz;
+
+raiz				::= lista_compilacion
+                                ;
+
+lista_compilacion		::= unidad_compilacion
+                                  | lista_compilacion unidad_compilacion
+                                ;
+
+unidad_compilacion		::=  declaracion_subprograma
+                                  |  cuerpo_subprograma
+                                ;
+
+nombre				::= IDENTIFICADOR
+                                  | operador_simbolo
+                                ;
+
+declaracion_subprograma		::= especific_subprograma
+                                ;
+
+especific_subprograma		::= PROCEDURE IDENTIFICADOR parte_formal_variante
+                                  | FUNCTION  designador parte_formal_variante RETURN indicacion_subtipo
+                                ;
+
+designador			::= IDENTIFICADOR:id {: RESULT = id; :} 
+                                  | operador_simbolo
+                                ;
+
+operador_simbolo		::= CADENA_LITERAL:cl {: RESULT = cl.toString(); :} 
+                                ;
+
+parte_formal_variante		::= 
+                                  | parte_formal
+                                ;
+
+parte_formal			::= PAR_IZQ lista_declaracion_parametro PAR_DER
+                                ;
+
+indicacion_subtipo		::= nombre
+                                ;
+
+lista_declaracion_parametro     ::= declaracion_parametro
+                                  | lista_declaracion_parametro PUNTO_Y_COMA declaracion_parametro
+                                ;
+
+declaracion_parametro 		::= IDENTIFICADOR DOS_PUNTOS modo indicacion_subtipo inicializacion_opcion
+                                  | lista_identificador2 DOS_PUNTOS modo indicacion_subtipo inicializacion_opcion
+                                ;
+
+modo				::= 
+                                  | IN
+                                  | OUT
+                                  | IN OUT
+                                ;
+
+inicializacion_opcion		::= 
+                                  | ASIGNACION expresion
+                                ;
+
+lista_identificador2		::= IDENTIFICADOR COMA IDENTIFICADOR
+                                  | lista_identificador2 COMA IDENTIFICADOR
+                                ;
+
+expresion 			::= relacion
+                                  | expresion_and
+                                  | expresion_or
+                                  | expresion_xor
+                                  | expresion_andthen
+                                  | expresion_orelse
+				  | error
+                                  ;
+
+expresion_and			::= relacion AND relacion
+                                  | expresion_and AND relacion
+                                  ;
+
+expresion_or			::= relacion OR relacion
+                                  | expresion_or OR relacion
+                                  ;
+
+expresion_xor			::= relacion XOR relacion
+                                  | expresion_xor XOR relacion
+                                  ;
+
+expresion_andthen		::= relacion AND THEN relacion
+                                  | expresion_andthen AND THEN relacion
+                                  ;
+
+expresion_orelse		::= relacion OR ELSE relacion
+                                  | expresion_orelse OR ELSE relacion
+                                  ;
+
+relacion			::= expresion_simple
+                                  | expresion_simple operador_relacional expresion_simple
+                                  | expresion_simple operador_membresia indicacion_subtipo
+                                  | expresion_simple operador_membresia rango
+                                  ;
+
+rango				::= expresion_simple RANGO expresion_simple
+                                  ;
+
+expresion_simple		::= lista_terminos
+                                  | operador_unario lista_terminos
+                                  | llamada_funcion
+                                  ;
+
+operador_relacional		::= IGUAL
+                                  | DISTINTO_DE
+                                  | MENOR_QUE
+                                  | MAYOR_QUE
+                                  | MAYOR_IGUAL_QUE
+                                  | MENOR_IGUAL_QUE
+                                  ;
+
+operador_membresia		::= IN
+                                  | NOT IN
+                                  ;
+
+
+operador_unario			::= MAS
+                                  | MENOS
+                                  ;
+
+operador_suma			::= MAS
+                                  | MENOS
+                                  | CONCATENAR
+                                  ;
+
+operador_multiplicacion		::= MULTIPLICACION
+                                  | DIVISION
+                                  | MOD
+                                  | REM
+                                  ;
+
+lista_terminos			::= termino
+                                  | lista_terminos operador_suma termino
+                                  ;
+
+termino				::= factor
+                                  | termino operador_multiplicacion factor
+                                  ;
+
+factor				::= primario
+                                  | ABS primario
+                                  | NOT primario
+                                  | primario EXPONENTE primario
+                                  ;
+
+primario			::= nombre
+                                  | asignador
+                                  | literal
+                                  | PAR_IZQ expresion PAR_DER
+                                  ;
+
+asignador			::= NEW nombre
+                                  ;
+
+literal				::= NULL
+                                  | literal_numerico
+                                  ;
+
+literal_numerico 		::= ENTERO_LITERAL
+                                  | REAL_LITERAL
+                                  ;
+
+
+
+
+cuerpo_subprograma 		::=   especific_subprograma_es:ese  
+                                    	 parte_declarativa					
+                                   BEGIN {:pila.push("BEGIN");:}
+                                        secuencia_de_sentencias
+                                   END {:pila.pop();:}
+					designador_variante:dv PUNTO_Y_COMA {:if(!ese.equals(dv)) 
+										System.out.println("Error en la linea "+ (dvleft+1) + " columna " 
+										+ (dvright+1) + " : Se esperaba fin del procedimiento " + ese); 
+									    :}
+			          ;							
+
+especific_subprograma_es	::= PROCEDURE IDENTIFICADOR:id IS {: RESULT = id; :} 
+                                  | PROCEDURE IDENTIFICADOR:id parte_formal IS {: RESULT = id; :}
+                                  | FUNCTION designador:ds parte_formal_variante RETURN indicacion_subtipo IS {: RESULT = ds;:}
+				  ;
+
+parte_declarativa 		::= lista_declarativa_item0
+                                  | lista_declarativa_item0 cuerpo lista_cuerpo0
+                                  ;
+
+lista_declarativa_item0		::= 
+                                  | lista_declarativa_item0 declaracion
+                                  ;
+
+lista_cuerpo0			::= 
+                                  | lista_cuerpo0 cuerpo
+                                  ;
+
+
+cuerpo				::= cuerpo_subprograma
+                                  ;
+
+
+secuencia_de_sentencias		::= sentencia
+                                  | secuencia_de_sentencias sentencia
+                                  ;
+
+sentencia			::= lista_etiqueta sentencia_simple
+                                  | lista_etiqueta sentencia_compuesta
+				  | error
+                                  ;
+
+lista_etiqueta			::= 
+                                  | lista_etiqueta etiqueta
+                                  ;
+
+etiqueta  			::=  ETIQUETA_IZQ IDENTIFICADOR ETIQUETA_DER
+                                  ;
+
+sentencia_simple		::= sentencia_nula
+                                  | sentencia_asignacion
+                                  | sentencia_salida
+                                  | sentencia_retorno
+                                  | sentencia_goto
+                                  | sentencia_llamada_funcion
+                                  | sentencia_put
+                                  | sentencia_get
+                                  ;
+
+sentencia_compuesta		::= sentencia_if
+                                  | sentencia_loop
+                                  ;
+
+sentencia_llamada_funcion	::= llamada_funcion PUNTO_Y_COMA
+                                  ;
+
+sentencia_nula			::= NULL PUNTO_Y_COMA
+                                  ;
+
+sentencia_asignacion		::= nombre ASIGNACION expresion PUNTO_Y_COMA
+                                  ;
+
+sentencia_salida		::= EXIT nombre_variante when_variante PUNTO_Y_COMA
+                                  ;
+
+sentencia_goto			::= GOTO nombre PUNTO_Y_COMA
+                                  ;
+
+sentencia_put 			::= PUT PAR_IZQ lista_expresiones_variante PAR_DER PUNTO_Y_COMA
+                                  ;
+
+sentencia_get 			::= GET PAR_IZQ lista_expresiones_variante PAR_DER PUNTO_Y_COMA
+                                  ;
+
+nombre_variante			::= 
+                                  | nombre
+                                  ;
+
+when_variante			::= 
+                                  | WHEN condicion
+                                  ;
+
+sentencia_retorno		::= RETURN PUNTO_Y_COMA
+                                  | RETURN expresion PUNTO_Y_COMA
+                                  ;
+
+sentencia_if			::= IF:e {: pila.push("IF"); :} condicion THEN secuencia_de_sentencias lista_elsif0 else_variante END IF {: pila.pop();
+																	:} PUNTO_Y_COMA
+                                  ;
+
+lista_elsif0			::= 
+                                  | lista_elsif0 ELSIF condicion THEN secuencia_de_sentencias
+                                  ;
+
+else_variante			::=
+                                  | ELSE secuencia_de_sentencias
+                                  ;
+
+condicion			::= expresion
+                                  ;
+
+sentencia_loop			::= iteracion_clausula_variante loop_basico PUNTO_Y_COMA
+                                  | IDENTIFICADOR DOS_PUNTOS iteracion_clausula_variante loop_basico IDENTIFICADOR PUNTO_Y_COMA
+                                  ;
+
+loop_basico			::= LOOP:l {: pila.push("LOOP"); :} secuencia_de_sentencias END LOOP {: pila.pop(); :}
+                                  ;
+
+iteracion_clausula_variante	::= 
+                                  | FOR IDENTIFICADOR IN rango
+                                  | FOR IDENTIFICADOR IN REVERSE rango
+                                  | WHILE condicion
+                                  ;
+
+designador_variante		::=
+                                  | designador:ds {:RESULT = ds;:}
+                                  ;
+
+declaracion                     ::= declaracion_numero 
+                                  | declaracion_subprograma
+                                  | declaracion_record
+                                  | declaracion_componente
+				  | error
+                                  ;
+
+declaracion_numero		::= IDENTIFICADOR DOS_PUNTOS CONSTANT ASIGNACION expresion PUNTO_Y_COMA
+                                  | lista_identificador2 DOS_PUNTOS CONSTANT ASIGNACION expresion PUNTO_Y_COMA
+                                  ;
+
+llamada_funcion			::= nombre PAR_IZQ lista_expresiones_variante PAR_DER
+                                  ;
+
+lista_expresiones_variante	::=
+                                  | lista_expresiones
+                                  ;
+
+lista_expresiones		::= expresion
+                                  | lista_expresiones COMA expresion
+                                  ;
+
+declaracion_record		::= TYPE IDENTIFICADOR IS definicion_record PUNTO_Y_COMA
+                                  ;
+
+definicion_record		::= RECORD lista_componentes END RECORD
+                                  ;
+
+lista_componentes		::= lista_declaracion_componentes0
+                                  | NULL PUNTO_Y_COMA
+                                  ;
+
+lista_declaracion_componentes0	::=
+                                  | lista_declaracion_componentes0 declaracion_componente
+                                  ;
+
+declaracion_componente		::= IDENTIFICADOR DOS_PUNTOS indicacion_subtipo inicializacion_opcion PUNTO_Y_COMA
+                                  | lista_identificador2 DOS_PUNTOS indicacion_subtipo inicializacion_opcion PUNTO_Y_COMA
+                                  ;
 
-	operador_suma			::= MAS
-					  | MENOS
-					  | CONCATENAR
-					  ;
-
-	operador_multiplicacion		::= MULTIPLICACION
-					  | DIVISION
-					  | MOD
-					  | REM
-					  ;
 
-	lista_terminos			::= termino
-					  | lista_terminos operador_suma termino
-					  ;
-
-	termino				::= factor
-					  | termino operador_multiplicacion factor
-					  ;
-
-	factor				::= primario
-					  | ABS primario
-					  | NOT primario
-					  | primario EXPONENTE primario
-					  ;
-
-	primario			::= nombre
-					  | asignador
-					  | literal
-					  | PAR_IZQ expresion PAR_DER
-					  ;
-
-	asignador			::= NEW nombre
-					  ;
-
-	literal				::= NULL
-					  | literal_numerico
-	//				  | CADENA_LITERAL
-					  ;
-
-	literal_numerico 		::= ENTERO_LITERAL
-					  | REAL_LITERAL
-					  ; 
-
-
-
-
-	cuerpo_subprograma 		::= especific_subprograma_es 
-						parte_declarativa 
-					    BEGIN 
-						secuencia_de_sentencias
-					    END designador_variante PUNTO_Y_COMA
-					  ;
-
-	especific_subprograma_es	::= PROCEDURE IDENTIFICADOR IS
-					  | PROCEDURE IDENTIFICADOR parte_formal IS
-					  | FUNCTION designador parte_formal_variante RETURN indicacion_subtipo IS
-					  ;
-
-	parte_declarativa 		::= lista_declarativa_item0
-					  | lista_declarativa_item0 cuerpo lista_cuerpo0
-					  ;
-
-	lista_declarativa_item0		::= 
-					  | lista_declarativa_item0 declaracion
-					  ;
-
-	lista_cuerpo0			::= 
-					  | lista_cuerpo0 cuerpo
-					  ;
-
-
-	cuerpo				::= cuerpo_subprograma
-					  ;
-
-
-	secuencia_de_sentencias		::= sentencia
-					  | secuencia_de_sentencias sentencia
-					  ;
-
-	sentencia			::= lista_etiqueta sentencia_simple
-					  | lista_etiqueta sentencia_compuesta
-					  | error sentencia
-					  ;
-
-	lista_etiqueta			::= 
-					  | lista_etiqueta etiqueta
-					  ;
-
-	etiqueta  			::=  ETIQUETA_IZQ IDENTIFICADOR ETIQUETA_DER
-					  ;
-
-	sentencia_simple		::= sentencia_nula
-					  | sentencia_asignacion
-					  | sentencia_salida
-					  | sentencia_retorno
-					  | sentencia_goto 
-					  | sentencia_llamada_funcion
-					  | sentencia_put
-					  | sentencia_get
-					  ;
-
-	sentencia_compuesta		::= sentencia_if
-					  | sentencia_loop
-					  ;
-
-	sentencia_llamada_funcion	::= llamada_funcion PUNTO_Y_COMA
-					  ; 
-
-	sentencia_nula			::= NULL PUNTO_Y_COMA
-					  ;
-
-	sentencia_asignacion		::= nombre ASIGNACION expresion PUNTO_Y_COMA
-					  ;
-
-	sentencia_salida		::= EXIT nombre_variante when_variante PUNTO_Y_COMA
-					  ; 
-
-	sentencia_goto			::= GOTO nombre PUNTO_Y_COMA
-					  ;
-
-	sentencia_put 			::= PUT PAR_IZQ lista_expresiones_variante PAR_DER PUNTO_Y_COMA
-					  ;
-
-	sentencia_get 			::= GET PAR_IZQ lista_expresiones_variante PAR_DER PUNTO_Y_COMA
-					  ; 
-
-	nombre_variante			::= 
-					  | nombre
-					  ;
-
-	when_variante			::= 
-					  | WHEN condicion
-					  ;
-
-	sentencia_retorno		::= RETURN PUNTO_Y_COMA
-					  | RETURN expresion PUNTO_Y_COMA
-					  ;
-
-	sentencia_if			::= IF condicion THEN secuencia_de_sentencias lista_elsif0 else_variante END IF PUNTO_Y_COMA
-					  ;
-
-	lista_elsif0			::= 
-					  | lista_elsif0 ELSIF condicion THEN secuencia_de_sentencias
-					  ;
-
-	else_variante			::=
-					  | ELSE secuencia_de_sentencias
-					  ;
-
-	condicion			::= expresion
-					  ;
-
-	sentencia_loop			::= iteracion_clausula_variante loop_basico PUNTO_Y_COMA
-					  | IDENTIFICADOR DOS_PUNTOS iteracion_clausula_variante loop_basico IDENTIFICADOR PUNTO_Y_COMA
-					  ;
-
-	loop_basico			::= LOOP secuencia_de_sentencias END LOOP
-					  ;
-
-	iteracion_clausula_variante	::= 
-					  | FOR IDENTIFICADOR IN rango
-					  | FOR IDENTIFICADOR IN REVERSE rango
-					  | WHILE condicion
-					  ;
-
-	designador_variante		::=
-					  | designador
-					  ;
-
-	declaracion                     ::= declaracion_numero 
-					  | declaracion_subprograma
-					  | declaracion_record
-					  | declaracion_componente
-					  | error declaracion
-					  ;
-
-	declaracion_numero		::= IDENTIFICADOR DOS_PUNTOS CONSTANT ASIGNACION expresion PUNTO_Y_COMA
-					  | lista_identificador2 DOS_PUNTOS CONSTANT ASIGNACION expresion PUNTO_Y_COMA
-					  ;
-	
-	llamada_funcion			::= nombre PAR_IZQ lista_expresiones_variante PAR_DER
-					  ;
-
-	lista_expresiones_variante	::=
-					  | lista_expresiones
-					  ;					   
-
-	lista_expresiones		::= expresion
-					  | lista_expresiones COMA expresion
-					  ;
-
-	declaracion_record		::= TYPE IDENTIFICADOR IS definicion_record PUNTO_Y_COMA
-					  ;
-
-	definicion_record		::= RECORD lista_componentes END RECORD
-					  ;
-
-	lista_componentes		::= lista_declaracion_componentes0
-					  | NULL PUNTO_Y_COMA
-					  ;
-
-	lista_declaracion_componentes0	::=
-					  | lista_declaracion_componentes0 declaracion_componente
-					  ;
-
-	declaracion_componente		::= IDENTIFICADOR DOS_PUNTOS indicacion_subtipo inicializacion_opcion PUNTO_Y_COMA
-					  | lista_identificador2 DOS_PUNTOS indicacion_subtipo inicializacion_opcion PUNTO_Y_COMA
-					  ;
-
-   

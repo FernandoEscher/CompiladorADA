@@ -1,3 +1,5 @@
+package compiladorada;
+
 import java_cup.runtime.*;
 
 %%
@@ -24,7 +26,7 @@ import java_cup.runtime.*;
 
 letra = [a-zA-Z]
 digito = [0-9]
-saltolinea = (\n | \r | \r\n)+
+saltolinea = (\n | \r | \r\n | \n\r)+
 espacio = (" " | {saltolinea} | \t | \f)+
 char = "'"{letra}"'"
 float = {digito}+"."{digito}+
@@ -150,12 +152,13 @@ comentario = "--"({letra}|{digito}|{espacio} | "~" | "!" | "¡" | "@" | "#" | "$
 {espacio}		{}
 {comentario}		{}
 .			{System.out.println("Error lexico. El caracter "+yytext()+ " en la linea "+ yyline+ " y columna "+yycolumn+ " no es reconocido");}
+<<EOF>>			{return symbol(sym.EOF);}
 
 }
 
 <YYCADENA>{
 
-\"			{yybegin(YYINITIAL);return symbol(sym.CADENA_LITERAL,string);}
+\"			{yybegin(YYINITIAL);return symbol(sym.CADENA_LITERAL,string.toString());}
 .			{string.append(yytext());}
 
 }
