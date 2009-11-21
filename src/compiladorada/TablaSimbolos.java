@@ -6,8 +6,9 @@ import java.util.Hashtable;
  * @author fernando
  */
 public class TablaSimbolos {
-    private Hashtable tabla;
-    private TablaSimbolos padre;
+    public Hashtable tabla;
+    public TablaSimbolos padre;
+    public String nombre;
 
     public TablaSimbolos(TablaSimbolos p){
         tabla = new Hashtable();
@@ -15,7 +16,7 @@ public class TablaSimbolos {
     }
 
     public boolean put(String s, Simbolo sim){
-        if (tabla.get(sim) != null){
+        if (get(s) != null){
             return false;
         }else{
             tabla.put(s, sim);
@@ -26,10 +27,15 @@ public class TablaSimbolos {
     public Simbolo get(String s){
         for(TablaSimbolos t = this; t != null; t=t.padre){
             Simbolo encontrado = (Simbolo)(t.tabla.get(s));
-            if(encontrado != null)
+            if(encontrado != null){
                 return encontrado;
+            }
         }
         return null;
+    }
+
+    public String toString(){
+        return nombre + ": " + tabla.toString();
     }
 
 }
