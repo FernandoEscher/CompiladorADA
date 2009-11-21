@@ -30,6 +30,7 @@ saltolinea = (\n | \r | \r\n | \n\r)+
 espacio = (" " | {saltolinea} | \t | \f)+
 char = "'"{letra}"'"
 float = {digito}+"."{digito}+
+boolean = "true" | "false"
 id = {letra}({digito}|{letra}|"_")*
 numero = {digito}+
 comentario = "--"({letra}|{digito}|{espacio} | "~" | "!" | "¡" | "@" | "#" | "$" | "%" | "^" | "&" | "(" | ")" | "_" | "+" | "-" | "=" | "{" | "}" | "[" | "]" | "|" | "<" | ">" | "?" | "¿" | "`" | "," | "." | ";" | ":" | "/" | "\\" | \" | "|" |"€")* {saltolinea}
@@ -53,6 +54,7 @@ comentario = "--"({letra}|{digito}|{espacio} | "~" | "!" | "¡" | "@" | "#" | "$
 "at"  			{return symbol(sym.AT);}
 "begin"  		{return symbol(sym.BEGIN);}
 "body"  		{return symbol(sym.BODY);}
+"boolean"               {return symbol(sym.BOOLEAN);}
 "case"  		{return symbol(sym.CASE);}
 "constant"  		{return symbol(sym.CONSTANT);}
 "declare"  		{return symbol(sym.DECLARE);}
@@ -67,11 +69,13 @@ comentario = "--"({letra}|{digito}|{espacio} | "~" | "!" | "¡" | "@" | "#" | "$
 "exception"  		{return symbol(sym.EXCEPTION);}
 "exit"    		{return symbol(sym.EXIT);}
 "for"  			{return symbol(sym.FOR);}
+"float"                 {return symbol(sym.FLOAT);}
 "function"  		{return symbol(sym.FUNCTION);}
 "generic"  		{return symbol(sym.GENERIC);}
 "goto"    		{return symbol(sym.GOTO);}
 "if"  			{return symbol(sym.IF);}
 "in"  			{return symbol(sym.IN);}
+"integer"               {return symbol(sym.INTEGER);}
 "is"  			{return symbol(sym.IS);}
 "limited"  		{return symbol(sym.LIMITED);}
 "loop"  		{return symbol(sym.LOOP);}
@@ -148,6 +152,7 @@ comentario = "--"({letra}|{digito}|{espacio} | "~" | "!" | "¡" | "@" | "#" | "$
 {numero}		{return symbol(sym.ENTERO_LITERAL, new Integer(Integer.parseInt(yytext())));}
 {char}			{return symbol(sym.CARACTER_LITERAL, yytext().charAt(1));}
 {float}			{return symbol(sym.REAL_LITERAL, new Float(Float.parseFloat(yytext())));}
+{boolean}               {return symbol(sym.BOOLEAN_LITERAL, new Boolean(Boolean.parseBoolean(yytext())));}
 {id}			{return symbol(sym.IDENTIFICADOR, yytext());}
 {espacio}		{}
 {comentario}		{}

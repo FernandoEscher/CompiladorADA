@@ -1,8 +1,27 @@
 procedure Sueldos is
-A:arreglo;
-Mayor:float:=0.0;
-casilla,n:integer:=0;
-nombre,nombre1:string;
+   A:integer:=5;
+   Z:boolean:=false;
+   Q:float:=5.6;
+   casilla,n:integer;
+
+   procedure Sueldo2 is
+      B:integer;
+
+      procedure Sueldo3 is
+          C:integer;
+      begin
+          A:=1;
+      end Sueldo3;
+
+      procedure Sueldo4 is
+          C:integer;
+      begin
+          A:=1;
+      end Sueldo4;
+
+   begin
+      A:=1;
+   end Sueldo2;
 
 begin
 

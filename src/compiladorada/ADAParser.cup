@@ -1,11 +1,49 @@
 package compiladorada;
 import java.util.Stack;
+import java.util.ArrayList;
 
 
 /* ----------------------Preliminary Declarations Section--------------------*/
 
 action code {:
    public Stack pila = new Stack();
+   public TablaSimbolos tablaActual = null;
+   public boolean hasError = true;
+
+
+   public String ErrorTipoIdDeclarado(int left, int right, String id){
+        return "Error de tipos en la linea " + (left+1) + " columna " + (right+1)
+                + " : El identificador \"" + id + "\" ya fue declarado anteriormente en un ámbito superior.";
+   }
+
+   public String ErrorTipoValorIrreconocible(int left, int right){
+        return "Error de tipos en la linea " + (left+1) + " columna " + (right+1)
+                + " : No se puede reconocer el tipo del elemento.";
+   }
+
+   public String ErrorTipoNoCompatible(int left, int right, Object t1, Object t2){
+        String retorno = "Error de tipos en la linea " + (left+1) + " columna " + (right+1)
+                + " : No puede asignar un valor ";
+
+        if(t2 instanceof TipoInteger)
+            retorno += "entero";
+        else if(t2 instanceof TipoFloat)
+            retorno += "float";
+        else if(t2 instanceof TipoBoolean)
+            retorno += "boolean";
+
+        retorno +=  " a una variable tipo ";
+
+        if(t1 instanceof TipoInteger)
+            retorno += "entero.";
+        else if(t1 instanceof TipoFloat)
+            retorno += "float.";
+        else if(t1 instanceof TipoBoolean)
+            retorno += "boolean.";
+
+
+        return retorno;
+   }
 :};
 
 parser code {:
@@ -45,8 +83,8 @@ parser code {:
 /*---------------Declaracion de terminales y no terminales--------------------*/
 
 /*Palabras reservadas*/
-terminal ABORT, ABS, ABSTRACT, ACCEPT, ACCESS, ALIASED, ALL, AND, ARRAY, AT, BEGIN, BODY, CASE, CONSTANT, DECLARE, DELAY, DELTA, DIGITS, DO;
-terminal ELSE, ELSIF, END, ENTRY, EXCEPTION, EXIT, FOR, FUNCTION, GENERIC, GOTO, IF, IN, IS, LIMITED, LOOP, MOD, NEW, NOT, NULL;
+terminal ABORT, ABS, ABSTRACT, ACCEPT, ACCESS, ALIASED, ALL, AND, ARRAY, AT, BEGIN, BODY, BOOLEAN, CASE, CONSTANT, DECLARE, DELAY, DELTA, DIGITS, DO;
+terminal ELSE, ELSIF, END, ENTRY, EXCEPTION, EXIT, FOR, FLOAT, FUNCTION, GENERIC, GOTO, IF, IN, INTEGER, IS, LIMITED, LOOP, MOD, NEW, NOT, NULL;
 terminal OF, OR, OTHERS, OUT, PACKAGE, PRAGMA, PRIVATE, PROCEDURE, PROTECTED, RAISE, RANGE, RECORD, REM, RENAMES, REQUEUE, RETURN, REVERSE;
 terminal SELECT, SEPARATE, SUBTYPE, TAGGED, TASK, TERMINATE, THEN, TYPE, UNTIL, USE, WHEN, WHILE, WITH, XOR;
 
@@ -59,9 +97,10 @@ terminal ETIQUETA_IZQ, INDEFINIDO;
 terminal PUT, GET;
 
 /*Literales*/
-terminal int ENTERO_LITERAL;
-terminal char CARACTER_LITERAL;
-terminal float REAL_LITERAL;
+terminal Integer ENTERO_LITERAL;
+terminal Character CARACTER_LITERAL;
+terminal Float REAL_LITERAL;
+terminal Boolean BOOLEAN_LITERAL;
 terminal String IDENTIFICADOR;
 terminal String CADENA_LITERAL;
 
@@ -78,7 +117,7 @@ non terminal sentencia_asignacion, sentencia_salida, sentencia_retorno, sentenci
 non terminal else_variante, loop_basico, declaracion_numero, lista_cuerpo0, nombre_variante, when_variante, lista_elsif0;
 non terminal iteracion_clausula_variante, lista_expresiones_variante, lista_expresiones, sentencia_put, sentencia_get; 
 non terminal declaracion_record, definicion_record, lista_componentes, lista_declaracion_componentes0, declaracion_componente;
-non terminal sentencia_llamada_funcion; 
+non terminal sentencia_llamada_funcion, literal_booleano;
 
 
 /*---------------Gramatica--------------------*/
@@ -120,7 +159,16 @@ parte_formal_variante		::=
 parte_formal			::= PAR_IZQ lista_declaracion_parametro PAR_DER
                                 ;
 
-indicacion_subtipo		::= nombre
+indicacion_subtipo		::= INTEGER {: RESULT = new Resultado(); 
+                                               Resultado res = (Resultado)RESULT;
+                                               res.tipo = new TipoInteger(); :}
+                                  | BOOLEAN {: RESULT = new Resultado();
+                                               Resultado res = (Resultado)RESULT;
+                                               res.tipo = new TipoBoolean(); :}
+                                  | FLOAT   {: RESULT = new Resultado();
+                                               Resultado res = (Resultado)RESULT;
+                                               res.tipo = new TipoFloat(); :}
+                                  | nombre
                                 ;
 
 lista_declaracion_parametro     ::= declaracion_parametro
@@ -138,14 +186,20 @@ modo				::=
                                 ;
 
 inicializacion_opcion		::= 
-                                  | ASIGNACION expresion
+                                  | ASIGNACION expresion:e {: RESULT = e; :}
                                 ;
 
-lista_identificador2		::= IDENTIFICADOR COMA IDENTIFICADOR
-                                  | lista_identificador2 COMA IDENTIFICADOR
+lista_identificador2		::= IDENTIFICADOR:id1 COMA IDENTIFICADOR:id2  {: ArrayList<String> res = new ArrayList<String>();
+                                                                                 res.add((String)id1);
+                                                                                 res.add((String)id2);
+                                                                                 RESULT = res; :}
+
+                                  | lista_identificador2:li2 COMA IDENTIFICADOR:id {: ArrayList<String> res = (ArrayList<String>) li2;
+                                                                                      res.add((String)id);
+                                                                                      RESULT = res;:}
                                 ;
 
-expresion 			::= relacion
+expresion 			::= relacion:r {: RESULT = r; :}
                                   | expresion_and
                                   | expresion_or
                                   | expresion_xor
@@ -174,16 +228,16 @@ expresion_orelse		::= relacion OR ELSE relacion
                                   | expresion_orelse OR ELSE relacion
                                   ;
 
-relacion			::= expresion_simple
+relacion			::= expresion_simple:es {:  RESULT = es; :}
                                   | expresion_simple operador_relacional expresion_simple
-                                  | expresion_simple operador_membresia indicacion_subtipo
+                               //   | expresion_simple operador_membresia indicacion_subtipo
                                   | expresion_simple operador_membresia rango
                                   ;
 
 rango				::= expresion_simple RANGO expresion_simple
                                   ;
 
-expresion_simple		::= lista_terminos
+expresion_simple		::= lista_terminos:lt {: RESULT = lt; :}
                                   | operador_unario lista_terminos
                                   | llamada_funcion
                                   ;
@@ -216,15 +270,15 @@ operador_multiplicacion		::= MULTIPLICACION
                                   | REM
                                   ;
 
-lista_terminos			::= termino
+lista_terminos			::= termino:t {: RESULT = t; :}
                                   | lista_terminos operador_suma termino
                                   ;
 
-termino				::= factor
+termino				::= factor:f {: RESULT = f; :}
                                   | termino operador_multiplicacion factor
                                   ;
 
-factor				::= primario
+factor				::= primario:p {: RESULT = p; :}
                                   | ABS primario
                                   | NOT primario
                                   | primario EXPONENTE primario
@@ -232,21 +286,24 @@ factor				::= primario
 
 primario			::= nombre
                                   | asignador
-                                  | literal
+                                  | literal:l {: RESULT = l; :}
                                   | PAR_IZQ expresion PAR_DER
                                   ;
 
 asignador			::= NEW nombre
                                   ;
 
-literal				::= NULL
-                                  | literal_numerico
+literal				::= NULL {: RESULT = null; :}
+                                  | literal_numerico:ln {: RESULT = ln; :}
+                                  | literal_booleano:lb {: RESULT = lb; :}
                                   ;
 
-literal_numerico 		::= ENTERO_LITERAL
-                                  | REAL_LITERAL
+literal_numerico 		::= ENTERO_LITERAL:el  {: RESULT = new TipoInteger(el.intValue()); :}
+                                  | REAL_LITERAL:rl {: RESULT = new TipoFloat(rl.floatValue()); :}
                                   ;
 
+literal_booleano                ::= BOOLEAN_LITERAL:bl {: RESULT = new TipoBoolean(bl.booleanValue()); :}
+                                  ;
 
 
 
@@ -255,15 +312,35 @@ cuerpo_subprograma 		::=   especific_subprograma_es:ese
                                    BEGIN {:pila.push("BEGIN");:}
                                         secuencia_de_sentencias
                                    END {:pila.pop();:}
-					designador_variante:dv PUNTO_Y_COMA {:if(!ese.equals(dv)) 
-										System.out.println("Error en la linea "+ (dvleft+1) + " columna " 
-										+ (dvright+1) + " : Se esperaba fin del procedimiento " + ese); 
-									    :}
+					designador_variante:dv PUNTO_Y_COMA
+                                    {:if(!ese.equals(dv))
+                                        System.out.println("Error en la linea "+ (dvleft+1) + " columna "
+                                        + (dvright+1) + " : Se esperaba fin del procedimiento " + ese);
+                                      
+                                      tablaActual = tablaActual.padre;
+
+
+                                    :}
 			          ;							
 
-especific_subprograma_es	::= PROCEDURE IDENTIFICADOR:id IS {: RESULT = id; :} 
-                                  | PROCEDURE IDENTIFICADOR:id parte_formal IS {: RESULT = id; :}
-                                  | FUNCTION designador:ds parte_formal_variante RETURN indicacion_subtipo IS {: RESULT = ds;:}
+especific_subprograma_es	::= PROCEDURE IDENTIFICADOR:id IS
+                                    {: RESULT = id;
+                                       TablaSimbolos tablaTmp = new TablaSimbolos(tablaActual);
+                                       tablaTmp.nombre = id;
+                                       tablaActual = tablaTmp;
+                                    :}
+
+                                  | PROCEDURE IDENTIFICADOR:id parte_formal IS
+                                    {: RESULT = id;
+                                       TablaSimbolos tablaTmp = new TablaSimbolos(tablaActual);
+                                       tablaTmp.nombre = id;
+                                       tablaActual = tablaTmp; :}
+
+                                  | FUNCTION designador:ds parte_formal_variante RETURN indicacion_subtipo IS
+                                    {: RESULT = ds;
+                                       TablaSimbolos tablaTmp = new TablaSimbolos(tablaActual);
+                                       tablaTmp.nombre = (String)ds;
+                                       tablaActual = tablaTmp;:}
 				  ;
 
 parte_declarativa 		::= lista_declarativa_item0
@@ -346,8 +423,10 @@ sentencia_retorno		::= RETURN PUNTO_Y_COMA
                                   | RETURN expresion PUNTO_Y_COMA
                                   ;
 
-sentencia_if			::= IF:e {: pila.push("IF"); :} condicion THEN secuencia_de_sentencias lista_elsif0 else_variante END IF {: pila.pop();
-																	:} PUNTO_Y_COMA
+sentencia_if			::= IF:e {: pila.push("IF"); 
+                                            tabla:}
+                                        condicion THEN secuencia_de_sentencias
+                                        lista_elsif0 else_variante END IF {: pila.pop(); :} PUNTO_Y_COMA
                                   ;
 
 lista_elsif0			::= 
@@ -378,15 +457,10 @@ designador_variante		::=
                                   | designador:ds {:RESULT = ds;:}
                                   ;
 
-declaracion                     ::= declaracion_numero 
-                                  | declaracion_subprograma
+declaracion                     ::= declaracion_subprograma
                                   | declaracion_record
                                   | declaracion_componente
 				  | error
-                                  ;
-
-declaracion_numero		::= IDENTIFICADOR DOS_PUNTOS CONSTANT ASIGNACION expresion PUNTO_Y_COMA
-                                  | lista_identificador2 DOS_PUNTOS CONSTANT ASIGNACION expresion PUNTO_Y_COMA
                                   ;
 
 llamada_funcion			::= nombre PAR_IZQ lista_expresiones_variante PAR_DER
@@ -414,8 +488,44 @@ lista_declaracion_componentes0	::=
                                   | lista_declaracion_componentes0 declaracion_componente
                                   ;
 
-declaracion_componente		::= IDENTIFICADOR DOS_PUNTOS indicacion_subtipo inicializacion_opcion PUNTO_Y_COMA
-                                  | lista_identificador2 DOS_PUNTOS indicacion_subtipo inicializacion_opcion PUNTO_Y_COMA
+declaracion_componente		::= IDENTIFICADOR:id DOS_PUNTOS indicacion_subtipo:ist inicializacion_opcion:io PUNTO_Y_COMA
+                                    {: Resultado res = (Resultado)ist;
+                                       Simbolo tmpSim = new Simbolo((String)id, res.tipo);
+                                       boolean done = tablaActual.put((String)id, tmpSim);
+
+                                       if (!done){
+                                           hasError = true;
+                                           System.out.println(ErrorTipoIdDeclarado(idleft, idright, (String)id));
+                                       } else 
+
+                                       if(io != null){
+                                           int error = res.tipo.mismoTipo(io);
+                                           if(error == 1)
+                                                hasError = true;
+                                                System.out.println(ErrorTipoNoCompatible(ioleft, ioright, res.tipo, io));
+                                           else if (error == 2)
+                                                hasError = true;
+                                                System.out.println(ErrorTipoValorIrreconocible(ioleft, ioright));
+                                       }
+
+
+
+                                    :}
+
+
+                                  | lista_identificador2:li2 DOS_PUNTOS indicacion_subtipo:ist inicializacion_opcion PUNTO_Y_COMA
+                                    {: Resultado res = (Resultado)ist;
+                                       ArrayList<String> ids =  (ArrayList<String>)li2;
+                                       ArrayList<Tipo> tipos = new ArrayList<Tipo>();
+                                       for(String s: ids){
+                                          Simbolo tmpSim = new Simbolo((String)s, res.tipo);
+                                          boolean done = tablaActual.put((String)s, tmpSim);
+                                          if (!done){
+                                            hasError = true;
+                                            System.out.println(ErrorTipoIdDeclarado(li2left, li2right, s));
+                                          }
+                                       }
+                                    :}
                                   ;
 
 
