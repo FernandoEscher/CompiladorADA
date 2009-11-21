@@ -11,5 +11,5 @@ package compiladorada;
  */
 public class Resultado {
     public String valex;
-    public int tipo;
+    public Tipo tipo;
 }
