@@ -103,8 +103,38 @@ action code {:
                     return ret;
                 }
           }
+   }
+/*
+   public boolean ErrorTipoEsNumerico(int left, int right, boolean es, Object t1, Object t2){
+        Tipo tmpT1;
+        Tipo tmpT2;
+
+        if(t1 instanceof Tipo)
+            tmpT1 = (Tipo)t1;
+        else
+            tmpT1 = null;
+
+        if(t2 instanceof Tipo)
+            tmpT2 = (Tipo)t2;
+        else
+            tmpT2 = null;
+
+        if( es && (!tmpT1.esNumerico()  || !tmpT2.esNumerico())){
+            System.out.println("Error de tipos en la linea " + (left+1) + " columna " + (right+1)
+                + " : Esta operación solo se puede realizar con tipos numéricos.");
+            return false;
+
+        }else if( !es && (tmpT1.esNumerico()  || tmpT2.esNumerico()) ){
+            System.out.println("Error de tipos en la linea " + (left+1) + " columna " + (right+1)
+                + " : Esta operación solo se puede realizar con tipos booleanos.");
+            return false;
+
+        }else
+            return true;
+
 
    }
+*/
 
 :};
 
@@ -347,19 +377,19 @@ factor				::= primario:p {: RESULT = p; :}
                                     {: Tipo tmp1 = (Tipo)p1;
                                        Tipo tmp2 = (Tipo)p2;
                                        int error = tmp1.mismoTipo(tmp2);
-
-                                       if(error == 1){
-                                            RESULT = ErrorTipoDeterminarTipo(p1, p2);
-                                            if(((Tipo)RESULT).error)
-                                                System.out.println(ErrorTipoOperacionNoCompatible(p1left, p1right, "**", p1, p2)); 
-                                       }else if(error == 2){
-                                            RESULT = ErrorTipoDeterminarTipo(p1, p2);
-                                            if(((Tipo)RESULT).error)
-                                                System.out.println(ErrorTipoValorIrreconocible(p1left, p1right));
-                                       }
-                                        else{
-                                            RESULT = tmp1.copia();
-                                       }
+                                       
+                                           if(error == 1){
+                                                RESULT = ErrorTipoDeterminarTipo(p1, p2);
+                                                if(((Tipo)RESULT).error)
+                                                    System.out.println(ErrorTipoOperacionNoCompatible(p1left, p1right, "**", p1, p2));
+                                           }else if(error == 2){
+                                                RESULT = ErrorTipoDeterminarTipo(p1, p2);
+                                                if(((Tipo)RESULT).error)
+                                                    System.out.println(ErrorTipoValorIrreconocible(p1left, p1right));
+                                           }
+                                            else{
+                                                RESULT = tmp1.copia();
+                                           }
                                     :}
                                   ;
 
