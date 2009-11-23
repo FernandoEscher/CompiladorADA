@@ -1,0 +1,806 @@
+package compiladorada;
+import java.util.Stack;
+import java.util.ArrayList;
+
+
+/* ----------------------Preliminary Declarations Section--------------------*/
+
+action code {:
+   public Stack pila = new Stack();
+   public TablaSimbolos tablaActual = null;
+   public boolean hasError = true;
+
+
+   public String ErrorTipoIdDeclarado(int left, int right, String id){
+        hasError = true;
+        return "Error de tipos en la linea " + (left+1) + " columna " + (right+1)
+                + " : El identificador \"" + id + "\" ya fue declarado anteriormente en un ámbito superior.";
+   }
+
+   public String ErrorTipoIdNoDeclarado(int left, int right, String id){
+        hasError = true;
+        return "Error de tipos en la linea " + (left+1) + " columna " + (right+1)
+                + " : El identificador \"" + id + "\" no ha sido declarado.";
+   }
+
+   public String ErrorTipoValorIrreconocible(int left, int right){
+        hasError = true;
+        return "Error de tipos en la linea " + (left+1) + " columna " + (right+1)
+                + " : No se puede reconocer el tipo del elemento.";
+   }
+
+   public String ErrorTipoAsignacionNoCompatible(int left, int right, Object t1, Object t2){
+        hasError = true;
+        String retorno = "Error de tipos en la linea " + (left+1) + " columna " + (right+1)
+                + " : No puede asignar un valor ";
+
+        if(t2 instanceof TipoInteger)
+            retorno += "entero";
+        else if(t2 instanceof TipoFloat)
+            retorno += "float";
+        else if(t2 instanceof TipoBoolean)
+            retorno += "boolean";
+
+        retorno +=  " a una variable tipo ";
+
+        if(t1 instanceof TipoInteger)
+            retorno += "entero.";
+        else if(t1 instanceof TipoFloat)
+            retorno += "float.";
+        else if(t1 instanceof TipoBoolean)
+            retorno += "boolean.";
+
+        return retorno;
+   }
+
+   public String ErrorTipoOperacionNoCompatible(int left, int right, String op, Object t1, Object t2){
+        hasError = true;
+        String retorno = "Error de tipos en la linea " + (left+1) + " columna " + (right+1)
+                + " : El operador " + op + " no se puede usar entre expresiones ";
+
+
+        if(t1 instanceof TipoInteger)
+            retorno += "entero";
+        else if(t1 instanceof TipoFloat)
+            retorno += "float";
+        else if(t1 instanceof TipoBoolean)
+            retorno += "boolean";
+
+        retorno +=  " y ";
+
+        if(t2 instanceof TipoInteger)
+            retorno += "entero.";
+        else if(t2 instanceof TipoFloat)
+            retorno += "float.";
+        else if(t2 instanceof TipoBoolean)
+            retorno += "boolean.";
+
+        return retorno;
+   }
+
+   public Tipo ErrorTipoDeterminarTipo(Object t1, Object t2){
+          Tipo tmpT1;
+          Tipo tmpT2;
+          Tipo ret;
+
+          if(t1 instanceof Tipo)
+                tmpT1 = (Tipo)t1;
+          else
+                tmpT1 = null;
+          if(t2 instanceof Tipo)
+                tmpT2 = (Tipo)t2;
+          else
+                tmpT2 = null;
+
+          if(!tmpT1.error && !tmpT2.error){
+                ret = tmpT1.copia();
+                ret.error = true;
+                return ret;
+          }else{
+                if(tmpT2.error){
+                    ret = tmpT1.copia();
+                    ret.error = false;
+                    return ret;
+                }else{
+                    ret = tmpT2.copia();
+                    ret.error = false;
+                    return ret;
+                }
+          }
+   }
+
+   public boolean ErrorTipoEsNumerico(int left, int right, boolean es, Object t1, Object t2){
+        Tipo tmpT1;
+        Tipo tmpT2;
+
+        if(t1 instanceof Tipo)
+            tmpT1 = (Tipo)t1;
+        else
+            tmpT1 = null;
+
+        if(t2 instanceof Tipo)
+            tmpT2 = (Tipo)t2;
+        else
+            tmpT2 = null;
+
+        if( es && (!tmpT1.esNumerico()  || !tmpT2.esNumerico())){
+            hasError = true;
+            System.out.println("Error de tipos en la linea " + (left+1) + " columna " + (right+1)
+                + " : Esta operación solo se puede realizar con tipos numéricos.");
+            return false;
+
+        }else if( !es && (tmpT1.esNumerico()  || tmpT2.esNumerico()) ){
+            hasError = true;
+            System.out.println("Error de tipos en la linea " + (left+1) + " columna " + (right+1)
+                + " : Esta operación solo se puede realizar con tipos booleanos.");
+            return false;
+
+        }else
+            return true;
+
+
+   }
+
+    public boolean ErrorTipoEsNumerico(int left, int right, boolean es, Object t1){
+        Tipo tmpT1;
+
+        if(t1 instanceof Tipo)
+            tmpT1 = (Tipo)t1;
+        else
+            tmpT1 = null;
+
+
+        if( es && !tmpT1.esNumerico()){
+            hasError = true;
+            System.out.println("Error de tipos en la linea " + (left+1) + " columna " + (right+1)
+                + " : Esta operación solo se puede realizar con tipos numéricos.");
+            return false;
+
+        }else if( !es && tmpT1.esNumerico() ){
+            hasError = true;
+            System.out.println("Error de tipos en la linea " + (left+1) + " columna " + (right+1)
+                + " : Esta operación solo se puede realizar con tipos booleanos.");
+            return false;
+
+        }else
+            return true;
+
+
+   }
+
+
+   public Tipo comprobacionExpresion(Object p1, Object p2, int p1left, int p1right, String op, boolean esNumerico){
+           Tipo tmp1 = (Tipo)p1;
+           Tipo tmp2 = (Tipo)p2;
+           int error = tmp1.mismoTipo(tmp2);
+
+           Tipo ret;
+
+           if(ErrorTipoEsNumerico(p1left, p1right, esNumerico, p1, p2)){
+               if(error == 1){
+                    ret = ErrorTipoDeterminarTipo(p1, p2);
+                    if(ret.error)
+                        System.out.println(ErrorTipoOperacionNoCompatible(p1left, p1right, op, p1, p2));
+               }else if(error == 2){
+                    ret = ErrorTipoDeterminarTipo(p1, p2);
+                    if(ret.error)
+                        System.out.println(ErrorTipoValorIrreconocible(p1left, p1right));
+               }
+                else{
+                    ret = tmp1.copia();
+                    ret.error = false;
+               }
+           }else{
+                if(esNumerico){
+                    if(tmp2.esNumerico()){
+                        ret = tmp2.copia();
+                        ret.error =true;
+                    }else if(tmp1.esNumerico()){
+                        ret = tmp1.copia();
+                        ret.error =true;
+                    }else{
+                        ret = new TipoInteger();
+                        ret.error = true;
+                    }
+                }else{
+                    if(!tmp2.esNumerico()){
+                        ret = tmp2.copia();
+                        ret.error =true;
+                    }else if(!tmp1.esNumerico()){
+                        ret = tmp1.copia();
+                        ret.error =true;
+                    }else{
+                        ret = new TipoBoolean();
+                        ret.error = true;
+                    }
+                }
+          }
+
+          return ret;
+
+    }
+
+
+
+
+    public Tipo comprobacionExpresion(Object p1, Object p2, int p1left, int p1right, String op){
+           Tipo ret;
+           Tipo tmp1 = (Tipo)p1;
+           Tipo tmp2 = (Tipo)p2;
+           int error = tmp1.mismoTipo(tmp2);
+           
+
+           if(error == 1){
+                ret = ErrorTipoDeterminarTipo(p1, p2);
+                if(ret.error)
+                    System.out.println(ErrorTipoOperacionNoCompatible(p1left, p1right, op, p1, p2));
+           }else if(error == 2){
+                ret = ErrorTipoDeterminarTipo(p1, p2);
+                if(ret.error)
+                    System.out.println(ErrorTipoValorIrreconocible(p1left, p1right));
+           }
+            else{
+                ret = tmp1.copia();
+                ret.error = false;
+           }
+
+          return ret;
+
+    }
+
+
+:};
+
+parser code {:
+
+    public void report_error(String message, Object info) {
+
+        StringBuffer m = new StringBuffer("Error");
+
+        if(message.equals("Syntax error"))
+                message = "Error sintáctico";
+        else if (message.equals("Couldn't repair and continue parse"))
+		if(!action_obj.pila.empty())
+                    message = "Fin del archivo sin completar la sentencia " + action_obj.pila.pop();
+                else
+                    message = "No se pudo recuperar para continuar el parseo";
+
+        if (info instanceof java_cup.runtime.Symbol) {
+            java_cup.runtime.Symbol s = ((java_cup.runtime.Symbol) info);
+
+            if (s.left >= 0) {
+                m.append(" en la línea "+(s.left+1));
+                if (s.right >= 0)
+                    m.append(", columna "+(s.right+1));
+            }
+        }
+
+        m.append(" : "+message);
+	System.err.println(m);
+    }
+    public void report_fatal_error(String message, Object info) {
+        report_error(message, info);
+        
+	//System.exit(1);
+    }
+:};
+
+/*---------------Declaracion de terminales y no terminales--------------------*/
+
+/*Palabras reservadas*/
+terminal ABORT, ABS, ABSTRACT, ACCEPT, ACCESS, ALIASED, ALL, AND, ARRAY, AT, BEGIN, BODY, BOOLEAN, CASE, CONSTANT, DECLARE, DELAY, DELTA, DIGITS, DO;
+terminal ELSE, ELSIF, END, ENTRY, EXCEPTION, EXIT, FOR, FLOAT, FUNCTION, GENERIC, GOTO, IF, IN, INTEGER, IS, LIMITED, LOOP, MOD, NEW, NOT, NULL;
+terminal OF, OR, OTHERS, OUT, PACKAGE, PRAGMA, PRIVATE, PROCEDURE, PROTECTED, RAISE, RANGE, RECORD, REM, RENAMES, REQUEUE, RETURN, REVERSE;
+terminal SELECT, SEPARATE, SUBTYPE, TAGGED, TASK, TERMINATE, THEN, TYPE, UNTIL, USE, WHEN, WHILE, WITH, XOR;
+
+/*Delimitadores*/
+terminal CONCATENAR, TIC, PAR_DER, PAR_IZQ, MULTIPLICACION, MAS, COMA, MENOS, PUNTO, DIVISION, DOS_PUNTOS, PUNTO_Y_COMA, MENOR_QUE, IGUAL;
+terminal MAYOR_QUE, BARRA_VERTICAL, FLECHA, RANGO, EXPONENTE, ASIGNACION, DISTINTO_DE, MAYOR_IGUAL_QUE, MENOR_IGUAL_QUE, ETIQUETA_DER;
+terminal ETIQUETA_IZQ, INDEFINIDO;
+
+/*extra*/
+terminal PUT, GET;
+
+/*Literales*/
+terminal Integer ENTERO_LITERAL;
+terminal Character CARACTER_LITERAL;
+terminal Float REAL_LITERAL;
+terminal Boolean BOOLEAN_LITERAL;
+terminal String IDENTIFICADOR;
+terminal String CADENA_LITERAL;
+
+/*No terminales*/
+
+non terminal raiz, lista_compilacion, unidad_compilacion, declaracion_subprograma, cuerpo_subprograma, expresion, primario, asignador, literal;
+non terminal nombre, especific_subprograma, parte_formal_variante, expresion_and, expresion_or, expresion_xor, expresion_andthen;
+non terminal indicacion_subtipo, designador, parte_formal, lista_declaracion_parametro, declaracion_parametro, modo, inicializacion_opcion;
+non terminal operador_simbolo, lista_identificador2, lista_terminos, operador_suma, termino, operador_multiplicacion, factor, literal_numerico;
+non terminal expresion_orelse, relacion, rango, expresion_simple, operador_relacional, operador_membresia, operador_unario;
+non terminal llamada_funcion, especific_subprograma_es, parte_declarativa, secuencia_de_sentencias, designador_variante, lista_declarativa_item0;
+non terminal declaracion, cuerpo, sentencia, lista_etiqueta, sentencia_simple, sentencia_compuesta, etiqueta, sentencia_nula;
+non terminal sentencia_asignacion, sentencia_salida, sentencia_retorno, sentencia_goto, sentencia_if, sentencia_loop, condicion;
+non terminal else_variante, loop_basico, declaracion_numero, lista_cuerpo0, nombre_variante, when_variante, lista_elsif0;
+non terminal iteracion_clausula_variante, lista_expresiones_variante, lista_expresiones, sentencia_put, sentencia_get; 
+non terminal declaracion_record, definicion_record, lista_componentes, lista_declaracion_componentes0, declaracion_componente;
+non terminal sentencia_llamada_funcion, literal_booleano;
+
+
+/*---------------Gramatica--------------------*/
+start with raiz;
+
+raiz				::= lista_compilacion
+                                ;
+
+lista_compilacion		::= unidad_compilacion
+                                  | lista_compilacion unidad_compilacion
+                                ;
+
+unidad_compilacion		::=  declaracion_subprograma
+                                  |  cuerpo_subprograma
+                                ;
+
+nombre				::= IDENTIFICADOR:id {: Simbolo res = tablaActual.get((String)id);
+                                                        if(res == null){
+                                                            System.out.println(ErrorTipoIdNoDeclarado(idleft, idright, (String)id));
+                                                            RESULT = null;
+                                                        }else
+                                                            RESULT = res.tipo;
+                                                     :}
+
+                                  | operador_simbolo
+                                ;
+
+declaracion_subprograma		::= especific_subprograma
+                                ;
+
+especific_subprograma		::= PROCEDURE IDENTIFICADOR parte_formal_variante
+                                  | FUNCTION  designador parte_formal_variante RETURN indicacion_subtipo
+                                ;
+
+designador			::= IDENTIFICADOR:id {: RESULT = id; :} 
+                                  | operador_simbolo
+                                ;
+
+operador_simbolo		::= CADENA_LITERAL:cl {: RESULT = cl.toString(); :} 
+                                ;
+
+parte_formal_variante		::= 
+                                  | parte_formal
+                                ;
+
+parte_formal			::= PAR_IZQ lista_declaracion_parametro PAR_DER
+                                ;
+
+indicacion_subtipo		::= INTEGER:i {: RESULT = new TipoInteger(); :}
+                                  | BOOLEAN:b {: RESULT = new TipoBoolean(); :}
+                                  | FLOAT:f   {: RESULT  = new TipoFloat(); :}
+                                  | nombre
+                                ;
+
+lista_declaracion_parametro     ::= declaracion_parametro
+                                  | lista_declaracion_parametro PUNTO_Y_COMA declaracion_parametro
+                                ;
+
+declaracion_parametro 		::= IDENTIFICADOR DOS_PUNTOS modo indicacion_subtipo inicializacion_opcion
+                                  | lista_identificador2 DOS_PUNTOS modo indicacion_subtipo inicializacion_opcion
+                                ;
+
+modo				::= 
+                                  | IN
+                                  | OUT
+                                  | IN OUT
+                                ;
+
+inicializacion_opcion		::= 
+                                  | ASIGNACION expresion:e {: RESULT = e; :}
+                                ;
+
+lista_identificador2		::= IDENTIFICADOR:id1 COMA IDENTIFICADOR:id2  {: ArrayList<String> res = new ArrayList<String>();
+                                                                                 res.add((String)id1);
+                                                                                 res.add((String)id2);
+                                                                                 RESULT = res; :}
+
+                                  | lista_identificador2:li2 COMA IDENTIFICADOR:id {: ArrayList<String> res = (ArrayList<String>) li2;
+                                                                                      res.add((String)id);
+                                                                                      RESULT = res;:}
+                                ;
+
+expresion 			::= relacion:r {: RESULT = r; :}
+                                  | expresion_and:ea {: RESULT = ea; :}
+                                  | expresion_or:eo {: RESULT = eo; :}
+                                  | expresion_xor:ex {: RESULT = ex; :}
+                                  | expresion_andthen:eat {: RESULT = eat; :}
+                                  | expresion_orelse:eoe {: RESULT = eoe; :}
+				  | error
+                                  ;
+
+expresion_and			::= relacion:r1 AND relacion:r2
+                                    {:  comprobacionExpresion(r1, r2, r1left, r2right,"and then", false);
+                                        RESULT = new TipoBoolean();
+                                    :}
+                                  | expresion_and AND relacion
+                                  ;
+
+expresion_or			::= relacion:r1 OR relacion:r2
+                                    {:  comprobacionExpresion(r1, r2, r1left, r2right,"and then", false);
+                                        RESULT = new TipoBoolean();
+                                    :}
+                                  | expresion_or OR relacion
+                                  ;
+
+expresion_xor			::= relacion:r1 XOR relacion:r2
+                                    {:  comprobacionExpresion(r1, r2, r1left, r2right,"xor", false);
+                                        RESULT = new TipoBoolean();
+                                    :}
+                                  | expresion_xor XOR relacion
+                                    
+                                  ;
+
+expresion_andthen		::= relacion:r1 AND THEN relacion:r2
+                                    {:  comprobacionExpresion(r1, r2, r1left, r2right,"and then", false);
+                                        RESULT = new TipoBoolean();
+                                    :}
+                                  | expresion_andthen AND THEN relacion
+                                    {: //TODO:Expresión estraña! :}
+                                  ;
+
+expresion_orelse		::= relacion:r1 OR ELSE relacion:r2
+                                    {:  comprobacionExpresion(r1, r2, r1left, r2right,"or else", false);
+                                        RESULT = new TipoBoolean();
+                                    :}
+
+                                  | expresion_orelse OR ELSE relacion
+                                    {: //TODO:Expresión estraña! :}
+                                    
+                                  ;
+
+relacion			::= expresion_simple:es {:  RESULT = es; :}
+                                  | expresion_simple:es1 operador_relacional:op expresion_simple:es2
+                                    {:  comprobacionExpresion(es1, es2, es1left, es2right,(String)op, true);
+                                        RESULT = new TipoBoolean();
+                                    :}
+
+                               //   | expresion_simple operador_membresia indicacion_subtipo
+                                  | expresion_simple operador_membresia rango
+                                  ;
+
+rango				::= expresion_simple:es1 RANGO expresion_simple:es2
+                                    {:  if(ErrorTipoEsNumerico(es1left, es1right, true, es1)){
+                                             RESULT = new TipoInteger();
+                                             ((TipoInteger)RESULT).error = true;
+                                         }else if(ErrorTipoEsNumerico(es2left, es2right, true, es2)){
+                                             RESULT = new TipoInteger();
+                                             ((TipoInteger)RESULT).error = true;
+                                         }else
+                                             RESULT = es2;
+                                    :}
+                                  ;
+
+expresion_simple		::= lista_terminos:lt {: RESULT = lt; :}
+                                  | operador_unario lista_terminos:lt
+                                    {:  if(ErrorTipoEsNumerico(ltleft, ltright, true, lt)){
+                                             RESULT = new TipoInteger();
+                                             ((TipoInteger)RESULT).error = true;
+                                         }else
+                                             RESULT = lt;
+                                    :}
+
+                                 
+                                  | llamada_funcion
+                                  ;
+
+operador_relacional		::= IGUAL {: RESULT = "="; :}
+                                  | DISTINTO_DE {: RESULT = "/="; :}
+                                  | MENOR_QUE {: RESULT = ">"; :}
+                                  | MAYOR_QUE {: RESULT = "<"; :}
+                                  | MAYOR_IGUAL_QUE {: RESULT = ">="; :}
+                                  | MENOR_IGUAL_QUE {: RESULT = "<="; :}
+                                  ;
+
+operador_membresia		::= IN {: RESULT = "in"; :}
+                                  | NOT IN {: RESULT = "not in"; :}
+                                  ;
+
+
+operador_unario			::= MAS {: RESULT = "+"; :}
+                                  | MENOS {: RESULT = "-"; :}
+                                  ;
+
+operador_suma			::= MAS {: RESULT = "+"; :}
+                                  | MENOS {: RESULT = "-"; :}
+                                  | CONCATENAR {: RESULT = "&"; :}
+                                  ;
+
+operador_multiplicacion		::= MULTIPLICACION {: RESULT = "*"; :}
+                                  | DIVISION {: RESULT = "/"; :}
+                                  | MOD {: RESULT = "mod"; :}
+                                  | REM {: RESULT = "rem"; :}
+                                  ;
+
+lista_terminos			::= termino:t {: RESULT = t; :}
+                                  | lista_terminos:lt operador_suma:op termino:t
+                                    {: RESULT = comprobacionExpresion(lt, t, ltleft, ltright,(String)op, true); :}
+                                    
+                                  ;
+
+termino				::= factor:f {: RESULT = f; :}
+                                  | termino:t operador_multiplicacion:op factor:f
+                                    {: RESULT = comprobacionExpresion(t, f, tleft, tright,(String)op, true); :}
+                                  ;
+
+factor				::= primario:p {: RESULT = p; :}
+                                  | ABS primario:p
+                                    {:  if(ErrorTipoEsNumerico(pleft, pright, true, p)){
+                                             RESULT = new TipoInteger();
+                                             ((TipoInteger)RESULT).error = true;
+                                         }else
+                                             RESULT = p;
+                                    :}
+
+                                  | NOT primario:p
+                                    {:  if(ErrorTipoEsNumerico(pleft, pright, false, p)){
+                                             RESULT = new TipoBoolean();
+                                             ((TipoInteger)RESULT).error = true;
+                                         }else
+                                             RESULT = p;
+                                    :}
+
+                                  | primario:p1 EXPONENTE primario:p2
+                                    {: RESULT = comprobacionExpresion(p1, p2, p1left, p1right,"**", true); :}
+                                  ;
+
+primario			::= nombre:n {: RESULT = n; :}
+ //                                 | asignador
+                                  | literal:l {: RESULT = l; :}
+                                  | PAR_IZQ expresion:e PAR_DER {: RESULT = e; :}
+                                  ;
+
+//asignador			::= NEW nombre
+//                                  ;
+
+literal				::= NULL {: RESULT = null; :}
+                                  | literal_numerico:ln {: RESULT = ln; :}
+                                  | literal_booleano:lb {: RESULT = lb; :}
+                                  ;
+
+literal_numerico 		::= ENTERO_LITERAL:el  {: RESULT = new TipoInteger(el.intValue()); :}
+                                  | REAL_LITERAL:rl {: RESULT = new TipoFloat(rl.floatValue()); :}
+                                  ;
+
+literal_booleano                ::= BOOLEAN_LITERAL:bl {: RESULT = new TipoBoolean(bl.booleanValue()); :}
+                                  ;
+
+
+
+cuerpo_subprograma 		::=   especific_subprograma_es:ese  
+                                    	 parte_declarativa					
+                                   BEGIN {:pila.push("BEGIN");:}
+                                        secuencia_de_sentencias
+                                   END {:pila.pop();:}
+					designador_variante:dv PUNTO_Y_COMA
+                                    {:if(!ese.equals(dv))
+                                        System.out.println("Error en la linea "+ (dvleft+1) + " columna "
+                                        + (dvright+1) + " : Se esperaba fin del procedimiento " + ese);
+                                      
+                                      tablaActual = tablaActual.padre;
+
+
+                                    :}
+			          ;							
+
+especific_subprograma_es	::= PROCEDURE IDENTIFICADOR:id IS
+                                    {: RESULT = id;
+                                       TablaSimbolos tablaTmp = new TablaSimbolos(tablaActual);
+                                       tablaTmp.nombre = id;
+                                       tablaActual = tablaTmp;
+                                    :}
+
+                                  | PROCEDURE IDENTIFICADOR:id parte_formal IS
+                                    {: RESULT = id;
+                                       TablaSimbolos tablaTmp = new TablaSimbolos(tablaActual);
+                                       tablaTmp.nombre = id;
+                                       tablaActual = tablaTmp; :}
+
+                                  | FUNCTION designador:ds parte_formal_variante RETURN indicacion_subtipo IS
+                                    {: RESULT = ds;
+                                       TablaSimbolos tablaTmp = new TablaSimbolos(tablaActual);
+                                       tablaTmp.nombre = (String)ds;
+                                       tablaActual = tablaTmp;:}
+				  ;
+
+parte_declarativa 		::= lista_declarativa_item0
+                                  | lista_declarativa_item0 cuerpo lista_cuerpo0
+                                  ;
+
+lista_declarativa_item0		::= 
+                                  | lista_declarativa_item0 declaracion
+                                  ;
+
+lista_cuerpo0			::= 
+                                  | lista_cuerpo0 cuerpo
+                                  ;
+
+
+cuerpo				::= cuerpo_subprograma
+                                  ;
+
+
+secuencia_de_sentencias		::= sentencia
+                                  | secuencia_de_sentencias sentencia
+                                  ;
+
+sentencia			::= lista_etiqueta sentencia_simple
+                                  | lista_etiqueta sentencia_compuesta
+				  | error
+                                  ;
+
+lista_etiqueta			::= 
+                                  | lista_etiqueta etiqueta
+                                  ;
+
+etiqueta  			::=  ETIQUETA_IZQ IDENTIFICADOR ETIQUETA_DER
+                                  ;
+
+sentencia_simple		::= sentencia_nula
+                                  | sentencia_asignacion
+                                  | sentencia_salida
+                                  | sentencia_retorno
+                                  | sentencia_goto
+                                  | sentencia_llamada_funcion
+                                  | sentencia_put
+                                  | sentencia_get
+                                  ;
+
+sentencia_compuesta		::= sentencia_if
+                                  | sentencia_loop
+                                  ;
+
+sentencia_llamada_funcion	::= llamada_funcion PUNTO_Y_COMA
+                                  ;
+
+sentencia_nula			::= NULL PUNTO_Y_COMA
+                                  ;
+
+sentencia_asignacion		::= nombre:n ASIGNACION expresion:e PUNTO_Y_COMA
+                                    {: comprobacionExpresion(n, e, eleft, eright, "de asignación"); :}
+                                  ;
+
+sentencia_salida		::= EXIT nombre_variante when_variante PUNTO_Y_COMA
+                                  ;
+
+sentencia_goto			::= GOTO nombre PUNTO_Y_COMA
+                                  ;
+
+sentencia_put 			::= PUT PAR_IZQ lista_expresiones_variante PAR_DER PUNTO_Y_COMA
+                                  ;
+
+sentencia_get 			::= GET PAR_IZQ lista_expresiones_variante PAR_DER PUNTO_Y_COMA
+                                  ;
+
+nombre_variante			::= 
+                                  | nombre
+                                  ;
+
+when_variante			::= 
+                                  | WHEN condicion
+                                  ;
+
+sentencia_retorno		::= RETURN PUNTO_Y_COMA
+                                  | RETURN expresion PUNTO_Y_COMA
+                                  ;
+
+sentencia_if			::= IF:e {: pila.push("IF"); :}
+                                        condicion THEN secuencia_de_sentencias
+                                        lista_elsif0 else_variante END IF {: pila.pop(); :} PUNTO_Y_COMA
+                                  ;
+
+lista_elsif0			::= 
+                                  | lista_elsif0 ELSIF condicion THEN secuencia_de_sentencias
+                                  ;
+
+else_variante			::=
+                                  | ELSE secuencia_de_sentencias
+                                  ;
+
+condicion			::= expresion:e {: RESULT = e; :}
+                                  ;
+
+sentencia_loop			::= iteracion_clausula_variante loop_basico PUNTO_Y_COMA
+                                  | IDENTIFICADOR DOS_PUNTOS iteracion_clausula_variante loop_basico IDENTIFICADOR PUNTO_Y_COMA
+                                  ;
+
+loop_basico			::= LOOP:l {: pila.push("LOOP"); :} secuencia_de_sentencias END LOOP {: pila.pop(); :}
+                                  ;
+
+iteracion_clausula_variante	::= 
+                                  | FOR IDENTIFICADOR IN rango
+                                  | FOR IDENTIFICADOR IN REVERSE rango
+                                  | WHILE condicion
+                                  ;
+
+designador_variante		::=
+                                  | designador:ds {:RESULT = ds;:}
+                                  ;
+
+declaracion                     ::= declaracion_subprograma
+                                  | declaracion_record
+                                  | declaracion_componente
+				  | error
+                                  ;
+
+llamada_funcion			::= nombre PAR_IZQ lista_expresiones_variante PAR_DER
+                                  ;
+
+lista_expresiones_variante	::=
+                                  | lista_expresiones
+                                  ;
+
+lista_expresiones		::= expresion
+                                  | lista_expresiones COMA expresion
+                                  ;
+
+declaracion_record		::= TYPE IDENTIFICADOR IS definicion_record PUNTO_Y_COMA
+                                  ;
+
+definicion_record		::= RECORD lista_componentes END RECORD
+                                  ;
+
+lista_componentes		::= lista_declaracion_componentes0
+                                  | NULL PUNTO_Y_COMA
+                                  ;
+
+lista_declaracion_componentes0	::=
+                                  | lista_declaracion_componentes0 declaracion_componente
+                                  ;
+
+declaracion_componente		::= IDENTIFICADOR:id DOS_PUNTOS indicacion_subtipo:ist inicializacion_opcion:io PUNTO_Y_COMA
+                                    {: Tipo res = (Tipo)ist;
+                                       Simbolo tmpSim = new Simbolo((String)id, res);
+                                       boolean done = tablaActual.put((String)id, tmpSim);
+
+                                       if (!done){
+                                           hasError = true;
+                                           System.out.println(ErrorTipoIdDeclarado(idleft, idright, (String)id));
+                                       } else 
+
+                                       if(io != null){
+                                           int error = res.mismoTipo(io);
+                                           if(error == 1){
+                                                System.out.println(ErrorTipoAsignacionNoCompatible(ioleft, ioright, res, io));
+                                           }
+                                           else if (error == 2){
+                                                System.out.println(ErrorTipoValorIrreconocible(ioleft, ioright));
+                                           }
+                                       }
+
+
+
+                                    :}
+
+
+                                  | lista_identificador2:li2 DOS_PUNTOS indicacion_subtipo:ist inicializacion_opcion:io PUNTO_Y_COMA
+                                    {: Tipo res = (Tipo)ist;
+                                       ArrayList<String> ids =  (ArrayList<String>)li2;
+                                       ArrayList<Tipo> tipos = new ArrayList<Tipo>();
+                                       for(String s: ids){
+                                          Simbolo tmpSim = new Simbolo((String)s, res);
+                                          boolean done = tablaActual.put((String)s, tmpSim);
+
+                                            if (!done){
+                                                System.out.println(ErrorTipoIdDeclarado(li2left, li2right, s));
+                                            }
+                                       }
+
+                                       if(io != null){
+                                            int error = res.mismoTipo(io);
+                                            if(error == 1){
+                                                System.out.println(ErrorTipoAsignacionNoCompatible(ioleft, ioright, res, io));
+                                            }
+                                            else if (error == 2){
+                                                System.out.println(ErrorTipoValorIrreconocible(ioleft, ioright));
+                                            }
+                                        }
+                                    :}
+                                  ;
+
+
