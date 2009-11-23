@@ -1,5 +1,5 @@
 procedure Sueldos is
-   A:integer:=5;
+   A:integer:=56;
    Z:boolean:=false;
    Q:float:=5.6;
    casilla,n:integer;
@@ -8,11 +8,12 @@ procedure Sueldos is
       B:integer;
 
       procedure Sueldo3 is
-          C:integer;
+          C:float;
+	  M:boolean;
       begin
-          C:=((5.9**5.8)**(8.7**6.5))**8.4;
-	  C:=abs (5*6**9);
-	  if not true then
+          C:=((5.9 / 4.6)*(8.7+6.5)-5.3)**8.4;
+	  M:=64*98;
+	  if ((5>=5) and (5<=6)) or (7>6) then
              C:=(9**56);
           end if;
       end Sueldo3;

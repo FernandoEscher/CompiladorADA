@@ -17,6 +17,12 @@ action code {:
                 + " : El identificador \"" + id + "\" ya fue declarado anteriormente en un ámbito superior.";
    }
 
+   public String ErrorTipoIdNoDeclarado(int left, int right, String id){
+        hasError = true;
+        return "Error de tipos en la linea " + (left+1) + " columna " + (right+1)
+                + " : El identificador \"" + id + "\" no ha sido declarado.";
+   }
+
    public String ErrorTipoValorIrreconocible(int left, int right){
         hasError = true;
         return "Error de tipos en la linea " + (left+1) + " columna " + (right+1)
@@ -81,12 +87,10 @@ action code {:
                 tmpT1 = (Tipo)t1;
           else
                 tmpT1 = null;
-
           if(t2 instanceof Tipo)
                 tmpT2 = (Tipo)t2;
           else
                 tmpT2 = null;
-
 
           if(!tmpT1.error && !tmpT2.error){
                 ret = tmpT1.copia();
@@ -120,11 +124,13 @@ action code {:
             tmpT2 = null;
 
         if( es && (!tmpT1.esNumerico()  || !tmpT2.esNumerico())){
+            hasError = true;
             System.out.println("Error de tipos en la linea " + (left+1) + " columna " + (right+1)
                 + " : Esta operación solo se puede realizar con tipos numéricos.");
             return false;
 
         }else if( !es && (tmpT1.esNumerico()  || tmpT2.esNumerico()) ){
+            hasError = true;
             System.out.println("Error de tipos en la linea " + (left+1) + " columna " + (right+1)
                 + " : Esta operación solo se puede realizar con tipos booleanos.");
             return false;
@@ -145,11 +151,13 @@ action code {:
 
 
         if( es && !tmpT1.esNumerico()){
+            hasError = true;
             System.out.println("Error de tipos en la linea " + (left+1) + " columna " + (right+1)
                 + " : Esta operación solo se puede realizar con tipos numéricos.");
             return false;
 
         }else if( !es && tmpT1.esNumerico() ){
+            hasError = true;
             System.out.println("Error de tipos en la linea " + (left+1) + " columna " + (right+1)
                 + " : Esta operación solo se puede realizar con tipos booleanos.");
             return false;
@@ -161,16 +169,16 @@ action code {:
    }
 
 
-   public Tipo comprobacionExpresion(Object p1, Object p2, String op, boolean esNumerico){
+   public Tipo comprobacionExpresion(Object p1, Object p2, int p1left, int p1right, String op, boolean esNumerico){
            Tipo tmp1 = (Tipo)p1;
            Tipo tmp2 = (Tipo)p2;
            int error = tmp1.mismoTipo(tmp2);
 
            Tipo ret;
 
-           if(ErrorTipoEsNumerico(p1left, p1right, true, p1, p2)){
+           if(ErrorTipoEsNumerico(p1left, p1right, esNumerico, p1, p2)){
                if(error == 1){
-                    ret ErrorTipoDeterminarTipo(p1, p2);
+                    ret = ErrorTipoDeterminarTipo(p1, p2);
                     if(ret.error)
                         System.out.println(ErrorTipoOperacionNoCompatible(p1left, p1right, op, p1, p2));
                }else if(error == 2){
@@ -180,17 +188,61 @@ action code {:
                }
                 else{
                     ret = tmp1.copia();
+                    ret.error = false;
                }
            }else{
-                if(tmp2.esNumerico())
-                    ret = tmp2.copia();
-                else if(tmp2.esNumerico())
-                    ret = tmp1.copia();
-                else{
-                    ret = new TipoInteger();
-                    ret.error = true;
+                if(esNumerico){
+                    if(tmp2.esNumerico()){
+                        ret = tmp2.copia();
+                        ret.error =true;
+                    }else if(tmp1.esNumerico()){
+                        ret = tmp1.copia();
+                        ret.error =true;
+                    }else{
+                        ret = new TipoInteger();
+                        ret.error = true;
+                    }
+                }else{
+                    if(!tmp2.esNumerico()){
+                        ret = tmp2.copia();
+                        ret.error =true;
+                    }else if(!tmp1.esNumerico()){
+                        ret = tmp1.copia();
+                        ret.error =true;
+                    }else{
+                        ret = new TipoBoolean();
+                        ret.error = true;
+                    }
                 }
           }
+
+          return ret;
+
+    }
+
+
+
+
+    public Tipo comprobacionExpresion(Object p1, Object p2, int p1left, int p1right, String op){
+           Tipo ret;
+           Tipo tmp1 = (Tipo)p1;
+           Tipo tmp2 = (Tipo)p2;
+           int error = tmp1.mismoTipo(tmp2);
+           
+
+           if(error == 1){
+                ret = ErrorTipoDeterminarTipo(p1, p2);
+                if(ret.error)
+                    System.out.println(ErrorTipoOperacionNoCompatible(p1left, p1right, op, p1, p2));
+           }else if(error == 2){
+                ret = ErrorTipoDeterminarTipo(p1, p2);
+                if(ret.error)
+                    System.out.println(ErrorTipoValorIrreconocible(p1left, p1right));
+           }
+            else{
+                ret = tmp1.copia();
+                ret.error = false;
+           }
 
           return ret;
 
@@ -287,7 +339,14 @@ unidad_compilacion		::=  declaracion_subprograma
                                   |  cuerpo_subprograma
                                 ;
 
-nombre				::= IDENTIFICADOR
+nombre				::= IDENTIFICADOR:id {: Simbolo res = tablaActual.get((String)id);
+                                                        if(res == null){
+                                                            System.out.println(ErrorTipoIdNoDeclarado(idleft, idright, (String)id));
+                                                            RESULT = null;
+                                                        }else
+                                                            RESULT = res.tipo;
+                                                     :}
+
                                   | operador_simbolo
                                 ;
 
@@ -312,15 +371,9 @@ parte_formal_variante		::=
 parte_formal			::= PAR_IZQ lista_declaracion_parametro PAR_DER
                                 ;
 
-indicacion_subtipo		::= INTEGER:i {: RESULT = new Resultado();
-                                               Resultado res = (Resultado)RESULT;
-                                               res.tipo = new TipoInteger(); :}
-                                  | BOOLEAN:b {: RESULT = new Resultado();
-                                               Resultado res = (Resultado)RESULT;
-                                               res.tipo = new TipoBoolean(); :}
-                                  | FLOAT:f   {: RESULT = new Resultado();
-                                               Resultado res = (Resultado)RESULT;
-                                               res.tipo = new TipoFloat(); :}
+indicacion_subtipo		::= INTEGER:i {: RESULT = new TipoInteger(); :}
+                                  | BOOLEAN:b {: RESULT = new TipoBoolean(); :}
+                                  | FLOAT:f   {: RESULT  = new TipoFloat(); :}
                                   | nombre
                                 ;
 
@@ -353,138 +406,126 @@ lista_identificador2		::= IDENTIFICADOR:id1 COMA IDENTIFICADOR:id2  {: ArrayList
                                 ;
 
 expresion 			::= relacion:r {: RESULT = r; :}
-                                  | expresion_and
-                                  | expresion_or
-                                  | expresion_xor
-                                  | expresion_andthen
-                                  | expresion_orelse
+                                  | expresion_and:ea {: RESULT = ea; :}
+                                  | expresion_or:eo {: RESULT = eo; :}
+                                  | expresion_xor:ex {: RESULT = ex; :}
+                                  | expresion_andthen:eat {: RESULT = eat; :}
+                                  | expresion_orelse:eoe {: RESULT = eoe; :}
 				  | error
                                   ;
 
-expresion_and			::= relacion AND relacion
+expresion_and			::= relacion:r1 AND relacion:r2
+                                    {:  comprobacionExpresion(r1, r2, r1left, r2right,"and then", false);
+                                        RESULT = new TipoBoolean();
+                                    :}
                                   | expresion_and AND relacion
                                   ;
 
-expresion_or			::= relacion OR relacion
+expresion_or			::= relacion:r1 OR relacion:r2
+                                    {:  comprobacionExpresion(r1, r2, r1left, r2right,"and then", false);
+                                        RESULT = new TipoBoolean();
+                                    :}
                                   | expresion_or OR relacion
                                   ;
 
-expresion_xor			::= relacion XOR relacion
+expresion_xor			::= relacion:r1 XOR relacion:r2
+                                    {:  comprobacionExpresion(r1, r2, r1left, r2right,"xor", false);
+                                        RESULT = new TipoBoolean();
+                                    :}
                                   | expresion_xor XOR relacion
+                                    
                                   ;
 
-expresion_andthen		::= relacion AND THEN relacion
+expresion_andthen		::= relacion:r1 AND THEN relacion:r2
+                                    {:  comprobacionExpresion(r1, r2, r1left, r2right,"and then", false);
+                                        RESULT = new TipoBoolean();
+                                    :}
                                   | expresion_andthen AND THEN relacion
+                                    {: //TODO:Expresión estraña! :}
                                   ;
 
-expresion_orelse		::= relacion OR ELSE relacion
+expresion_orelse		::= relacion:r1 OR ELSE relacion:r2
+                                    {:  comprobacionExpresion(r1, r2, r1left, r2right,"or else", false);
+                                        RESULT = new TipoBoolean();
+                                    :}
+
                                   | expresion_orelse OR ELSE relacion
+                                    {: //TODO:Expresión estraña! :}
+                                    
                                   ;
 
 relacion			::= expresion_simple:es {:  RESULT = es; :}
-                                  | expresion_simple operador_relacional expresion_simple
+                                  | expresion_simple:es1 operador_relacional:op expresion_simple:es2
+                                    {:  comprobacionExpresion(es1, es2, es1left, es2right,(String)op, true);
+                                        RESULT = new TipoBoolean();
+                                    :}
+
                                //   | expresion_simple operador_membresia indicacion_subtipo
                                   | expresion_simple operador_membresia rango
                                   ;
 
-rango				::= expresion_simple RANGO expresion_simple
-                                  ;
-
-expresion_simple		::= lista_terminos:lt {: RESULT = lt; :}
-                                  | operador_unario lista_terminos
-                                  | llamada_funcion
-                                  ;
-
-operador_relacional		::= IGUAL
-                                  | DISTINTO_DE
-                                  | MENOR_QUE
-                                  | MAYOR_QUE
-                                  | MAYOR_IGUAL_QUE
-                                  | MENOR_IGUAL_QUE
-                                  ;
-
-operador_membresia		::= IN
-                                  | NOT IN
-                                  ;
-
-
-operador_unario			::= MAS
-                                  | MENOS
-                                  ;
-
-operador_suma			::= MAS
-                                  | MENOS
-                                  | CONCATENAR
-                                  ;
-
-operador_multiplicacion		::= MULTIPLICACION
-                                  | DIVISION
-                                  | MOD
-                                  | REM
-                                  ;
-
-lista_terminos			::= termino:t {: RESULT = t; :}
-                                  | lista_terminos operador_suma termino
-                                    {: Tipo tmp1 = (Tipo)p1;
-                                       Tipo tmp2 = (Tipo)p2;
-                                       int error = tmp1.mismoTipo(tmp2);
-
-                                       if(ErrorTipoEsNumerico(p1left, p1right, true, p1, p2)){
-                                           if(error == 1){
-                                                RESULT = ErrorTipoDeterminarTipo(p1, p2);
-                                                if(((Tipo)RESULT).error)
-                                                    System.out.println(ErrorTipoOperacionNoCompatible(p1left, p1right, "**", p1, p2));
-                                           }else if(error == 2){
-                                                RESULT = ErrorTipoDeterminarTipo(p1, p2);
-                                                if(((Tipo)RESULT).error)
-                                                    System.out.println(ErrorTipoValorIrreconocible(p1left, p1right));
-                                           }
-                                            else{
-                                                RESULT = tmp1.copia();
-                                           }
-                                       }else{
-                                            if(tmp2.esNumerico())
-                                                RESULT = tmp2.copia();
-                                            else if(tmp2.esNumerico())
-                                                RESULT = tmp1.copia();
-                                            else{
-                                                RESULT = new TipoInteger();
-                                                ((TipoInteger)RESULT).error = true;
-                                            }
-                                      }
+rango				::= expresion_simple:es1 RANGO expresion_simple:es2
+                                    {:  if(ErrorTipoEsNumerico(es1left, es1right, true, es1)){
+                                             RESULT = new TipoInteger();
+                                             ((TipoInteger)RESULT).error = true;
+                                         }else if(ErrorTipoEsNumerico(es2left, es2right, true, es2)){
+                                             RESULT = new TipoInteger();
+                                             ((TipoInteger)RESULT).error = true;
+                                         }else
+                                             RESULT = es2;
                                     :}
                                   ;
 
-termino				::= factor:f {: RESULT = f; :}
-                                  | termino:t operador_multiplicacion factor:f
-                                    {: Tipo tmp1 = (Tipo)t;
-                                       Tipo tmp2 = (Tipo)f;
-                                       int error = tmp1.mismoTipo(tmp2);
+expresion_simple		::= lista_terminos:lt {: RESULT = lt; :}
+                                  | operador_unario lista_terminos:lt
+                                    {:  if(ErrorTipoEsNumerico(ltleft, ltright, true, lt)){
+                                             RESULT = new TipoInteger();
+                                             ((TipoInteger)RESULT).error = true;
+                                         }else
+                                             RESULT = lt;
+                                    :}
 
-                                       if(ErrorTipoEsNumerico(tleft, tright, true, t, f)){
-                                           if(error == 1){
-                                                RESULT = ErrorTipoDeterminarTipo(t, f);
-                                                if(((Tipo)RESULT).error)
-                                                    System.out.println(ErrorTipoOperacionNoCompatible(tleft, tright, "*", t, f));
-                                           }else if(error == 2){
-                                                RESULT = ErrorTipoDeterminarTipo(t, f);
-                                                if(((Tipo)RESULT).error)
-                                                    System.out.println(ErrorTipoValorIrreconocible(tleft, tright));
-                                           }
-                                            else{
-                                                RESULT = tmp1.copia();
-                                           }
-                                       }else{
-                                            if(tmp2.esNumerico())
-                                                RESULT = tmp2.copia();
-                                            else if(tmp2.esNumerico())
-                                                RESULT = tmp1.copia();
-                                            else{
-                                                RESULT = new TipoInteger();
-                                                ((TipoInteger)RESULT).error = true;
-                                            }
-                                      }
-                                   :}
+                                 
+                                  | llamada_funcion
+                                  ;
+
+operador_relacional		::= IGUAL {: RESULT = "="; :}
+                                  | DISTINTO_DE {: RESULT = "/="; :}
+                                  | MENOR_QUE {: RESULT = ">"; :}
+                                  | MAYOR_QUE {: RESULT = "<"; :}
+                                  | MAYOR_IGUAL_QUE {: RESULT = ">="; :}
+                                  | MENOR_IGUAL_QUE {: RESULT = "<="; :}
+                                  ;
+
+operador_membresia		::= IN {: RESULT = "in"; :}
+                                  | NOT IN {: RESULT = "not in"; :}
+                                  ;
+
+
+operador_unario			::= MAS {: RESULT = "+"; :}
+                                  | MENOS {: RESULT = "-"; :}
+                                  ;
+
+operador_suma			::= MAS {: RESULT = "+"; :}
+                                  | MENOS {: RESULT = "-"; :}
+                                  | CONCATENAR {: RESULT = "&"; :}
+                                  ;
+
+operador_multiplicacion		::= MULTIPLICACION {: RESULT = "*"; :}
+                                  | DIVISION {: RESULT = "/"; :}
+                                  | MOD {: RESULT = "mod"; :}
+                                  | REM {: RESULT = "rem"; :}
+                                  ;
+
+lista_terminos			::= termino:t {: RESULT = t; :}
+                                  | lista_terminos:lt operador_suma:op termino:t
+                                    {: RESULT = comprobacionExpresion(lt, t, ltleft, ltright,(String)op, true); :}
+                                    
+                                  ;
+
+termino				::= factor:f {: RESULT = f; :}
+                                  | termino:t operador_multiplicacion:op factor:f
+                                    {: RESULT = comprobacionExpresion(t, f, tleft, tright,(String)op, true); :}
                                   ;
 
 factor				::= primario:p {: RESULT = p; :}
@@ -505,44 +546,17 @@ factor				::= primario:p {: RESULT = p; :}
                                     :}
 
                                   | primario:p1 EXPONENTE primario:p2
-                                    {: Tipo tmp1 = (Tipo)p1;
-                                       Tipo tmp2 = (Tipo)p2;
-                                       int error = tmp1.mismoTipo(tmp2);
-                                       
-                                       if(ErrorTipoEsNumerico(p1left, p1right, true, p1, p2)){
-                                           if(error == 1){
-                                                RESULT = ErrorTipoDeterminarTipo(p1, p2);
-                                                if(((Tipo)RESULT).error)
-                                                    System.out.println(ErrorTipoOperacionNoCompatible(p1left, p1right, "**", p1, p2));
-                                           }else if(error == 2){
-                                                RESULT = ErrorTipoDeterminarTipo(p1, p2);
-                                                if(((Tipo)RESULT).error)
-                                                    System.out.println(ErrorTipoValorIrreconocible(p1left, p1right));
-                                           }
-                                            else{
-                                                RESULT = tmp1.copia();
-                                           }
-                                       }else{
-                                            if(tmp2.esNumerico())
-                                                RESULT = tmp2.copia();
-                                            else if(tmp2.esNumerico())
-                                                RESULT = tmp1.copia();
-                                            else{
-                                                RESULT = new TipoInteger();
-                                                ((TipoInteger)RESULT).error = true;
-                                            }
-                                      }
-                                    :}
+                                    {: RESULT = comprobacionExpresion(p1, p2, p1left, p1right,"**", true); :}
                                   ;
 
-primario			::= nombre
-                                  | asignador
+primario			::= nombre:n {: RESULT = n; :}
+ //                                 | asignador
                                   | literal:l {: RESULT = l; :}
                                   | PAR_IZQ expresion:e PAR_DER {: RESULT = e; :}
                                   ;
 
-asignador			::= NEW nombre
-                                  ;
+//asignador			::= NEW nombre
+//                                  ;
 
 literal				::= NULL {: RESULT = null; :}
                                   | literal_numerico:ln {: RESULT = ln; :}
@@ -647,7 +661,8 @@ sentencia_llamada_funcion	::= llamada_funcion PUNTO_Y_COMA
 sentencia_nula			::= NULL PUNTO_Y_COMA
                                   ;
 
-sentencia_asignacion		::= nombre ASIGNACION expresion PUNTO_Y_COMA
+sentencia_asignacion		::= nombre:n ASIGNACION expresion:e PUNTO_Y_COMA
+                                    {: comprobacionExpresion(n, e, eleft, eright, "de asignación"); :}
                                   ;
 
 sentencia_salida		::= EXIT nombre_variante when_variante PUNTO_Y_COMA
@@ -674,8 +689,7 @@ sentencia_retorno		::= RETURN PUNTO_Y_COMA
                                   | RETURN expresion PUNTO_Y_COMA
                                   ;
 
-sentencia_if			::= IF:e {: pila.push("IF"); 
-                                         :}
+sentencia_if			::= IF:e {: pila.push("IF"); :}
                                         condicion THEN secuencia_de_sentencias
                                         lista_elsif0 else_variante END IF {: pila.pop(); :} PUNTO_Y_COMA
                                   ;
@@ -688,7 +702,7 @@ else_variante			::=
                                   | ELSE secuencia_de_sentencias
                                   ;
 
-condicion			::= expresion
+condicion			::= expresion:e {: RESULT = e; :}
                                   ;
 
 sentencia_loop			::= iteracion_clausula_variante loop_basico PUNTO_Y_COMA
@@ -740,8 +754,8 @@ lista_declaracion_componentes0	::=
                                   ;
 
 declaracion_componente		::= IDENTIFICADOR:id DOS_PUNTOS indicacion_subtipo:ist inicializacion_opcion:io PUNTO_Y_COMA
-                                    {: Resultado res = (Resultado)ist;
-                                       Simbolo tmpSim = new Simbolo((String)id, res.tipo);
+                                    {: Tipo res = (Tipo)ist;
+                                       Simbolo tmpSim = new Simbolo((String)id, res);
                                        boolean done = tablaActual.put((String)id, tmpSim);
 
                                        if (!done){
@@ -750,9 +764,9 @@ declaracion_componente		::= IDENTIFICADOR:id DOS_PUNTOS indicacion_subtipo:ist i
                                        } else 
 
                                        if(io != null){
-                                           int error = res.tipo.mismoTipo(io);
+                                           int error = res.mismoTipo(io);
                                            if(error == 1){
-                                                System.out.println(ErrorTipoAsignacionNoCompatible(ioleft, ioright, res.tipo, io));
+                                                System.out.println(ErrorTipoAsignacionNoCompatible(ioleft, ioright, res, io));
                                            }
                                            else if (error == 2){
                                                 System.out.println(ErrorTipoValorIrreconocible(ioleft, ioright));
@@ -765,11 +779,11 @@ declaracion_componente		::= IDENTIFICADOR:id DOS_PUNTOS indicacion_subtipo:ist i
 
 
                                   | lista_identificador2:li2 DOS_PUNTOS indicacion_subtipo:ist inicializacion_opcion:io PUNTO_Y_COMA
-                                    {: Resultado res = (Resultado)ist;
+                                    {: Tipo res = (Tipo)ist;
                                        ArrayList<String> ids =  (ArrayList<String>)li2;
                                        ArrayList<Tipo> tipos = new ArrayList<Tipo>();
                                        for(String s: ids){
-                                          Simbolo tmpSim = new Simbolo((String)s, res.tipo);
+                                          Simbolo tmpSim = new Simbolo((String)s, res);
                                           boolean done = tablaActual.put((String)s, tmpSim);
 
                                             if (!done){
@@ -778,9 +792,9 @@ declaracion_componente		::= IDENTIFICADOR:id DOS_PUNTOS indicacion_subtipo:ist i
                                        }
 
                                        if(io != null){
-                                            int error = res.tipo.mismoTipo(io);
+                                            int error = res.mismoTipo(io);
                                             if(error == 1){
-                                                System.out.println(ErrorTipoAsignacionNoCompatible(ioleft, ioright, res.tipo, io));
+                                                System.out.println(ErrorTipoAsignacionNoCompatible(ioleft, ioright, res, io));
                                             }
                                             else if (error == 2){
                                                 System.out.println(ErrorTipoValorIrreconocible(ioleft, ioright));

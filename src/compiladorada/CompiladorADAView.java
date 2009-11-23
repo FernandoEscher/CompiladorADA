@@ -327,7 +327,7 @@ public class CompiladorADAView extends FrameView {
     }//GEN-LAST:event_jMenuItem1ActionPerformed
 
     private void exitMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_exitMenuItemActionPerformed
-        // TODO add your handling code here:
+
     }//GEN-LAST:event_exitMenuItemActionPerformed
 
     private void jMenuItem2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jMenuItem2ActionPerformed
@@ -356,7 +356,7 @@ public class CompiladorADAView extends FrameView {
 
       } catch (Exception e) {
         /* do cleanup here -- possibly rethrow e */
-        this.jTextArea1.setText(e.getStackTrace().toString());
+        //this.jTextArea1.setText(e.getStackTrace().toString());
     }
       this.jTextArea1.append("Compilación completa!\n");
     }//GEN-LAST:event_jButton1ActionPerformed

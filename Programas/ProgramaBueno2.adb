@@ -3,13 +3,13 @@ procedure Holamundo (x: in integer) is
 type registro is
 record
 	x : integer;
-	x : float := 5.5;
+	a : integer := 5;
 end record;
-variable: string;
+variable: integer;
 
 begin
 null;
-variable := a**b+"hola"+44;
+variable := a**x+44;
 end Holamundo;
 
 function F (i: out float) return float
