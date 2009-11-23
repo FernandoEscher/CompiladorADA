@@ -10,7 +10,7 @@ procedure Sueldos is
       procedure Sueldo3 is
           C:integer;
       begin
-          C:=((5**5)**(5.6**55))**5.6;
+          C:=((5**5)**(true**false))**5.6;
       end Sueldo3;
 
       procedure Sueldo4 is
