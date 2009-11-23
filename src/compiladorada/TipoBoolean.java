@@ -16,8 +16,8 @@ public class TipoBoolean extends Tipo{
 
     public TipoBoolean(){}
 
-    public TipoBoolean(boolean v){
-        valor = v;
+    public TipoBoolean(Object v){
+        valor = ((Boolean)v).booleanValue();
     }
 
     @Override
@@ -31,9 +31,26 @@ public class TipoBoolean extends Tipo{
             return 2;
     }
 
+    public boolean esNumerico(){
+        return false;
+    }
+
 
     @Override
     public int getTipo() {
         return Tipo.BOOLEAN;
+    }
+
+    public String toString(){
+
+        return "Es un Boolean!";
+
+    }
+
+
+    public TipoBoolean copia(){
+        TipoBoolean ret = new TipoBoolean(valor);
+        ret.error = super.error;
+        return ret;
     }
 }

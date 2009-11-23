@@ -16,9 +16,20 @@ public abstract class Tipo {
     public static int FUNCION = 3;
     public static int REGISTRO = 4;
 
+    public boolean error = false;
+
     
     public abstract int mismoTipo(Object t);
 
     public abstract int getTipo();
+
+    public abstract boolean esNumerico();
+
+    public abstract Tipo copia();
+
+    public String toString(){
+
+        return "Es un tipo!";
+    }
 
 }

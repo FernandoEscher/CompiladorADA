@@ -16,8 +16,8 @@ public class TipoInteger extends Tipo{
 
     public TipoInteger(){}
 
-    public TipoInteger(int v){
-        valor = v;
+    public TipoInteger(Object v){
+        valor = ((Integer)v).intValue();
     }
 
 
@@ -35,8 +35,24 @@ public class TipoInteger extends Tipo{
         
     }
 
+    public boolean esNumerico(){
+        return true;
+    }
+
     @Override
     public int getTipo() {
         return Tipo.INTEGER;
+    }
+
+    public String toString(){
+
+        return "Es un Integer!";
+
+    }
+
+    public TipoInteger copia(){
+        TipoInteger ret = new TipoInteger(valor);
+        ret.error = super.error;
+        return ret;
     }
 }

@@ -16,8 +16,8 @@ public class TipoFloat extends Tipo{
 
     public TipoFloat(){}
 
-    public TipoFloat(float v){
-        valor = v;
+    public TipoFloat(Object v){
+        valor = ((Float)v).floatValue();
     }
 
 
@@ -32,8 +32,24 @@ public class TipoFloat extends Tipo{
             return 2;
     }
 
+    public boolean esNumerico(){
+        return true;
+    }
+
     @Override
     public int getTipo() {
         return Tipo.FLOAT;
+    }
+
+    public String toString(){
+
+        return "Es un Float!";
+
+    }
+
+    public TipoFloat copia(){
+        TipoFloat ret = new TipoFloat(valor);
+        ret.error = super.error;
+        return ret;
     }
 }
