@@ -1,4 +1,4 @@
-procedure Holamundo (Holamundo: in integer) is
+procedure Holamundo (f: in out integer) is
       type registro is record
          x : integer;
          a : integer := 55;

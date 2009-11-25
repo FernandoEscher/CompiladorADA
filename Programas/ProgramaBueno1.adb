@@ -1,4 +1,4 @@
-procedure Sueldos (x: in integer) is
+procedure ProgramaBueno1 (x: in integer) is
    A:integer:=56;
    Z:boolean:=false;
    Q:float:=5.6;
@@ -7,7 +7,7 @@ procedure Sueldos (x: in integer) is
    Mayor:integer;
    procedure Sueldo2 (v:in integer) is
       B:integer;
-      procedure Sueldo3 is
+      function Sueldo3 (s:in integer; y:out boolean) return integer is
           C:float;
 	  M:integer;
       begin
@@ -25,7 +25,8 @@ procedure Sueldos (x: in integer) is
       end Sueldo4;
 
    begin
-      A:=1;
+      A:=Sueldo3(a, z);
+      A:=5;
    end Sueldo2;
 
 begin
@@ -33,22 +34,20 @@ begin
    for I in 1..2 loop
       put("ingrese nombre del empleado ");
       put("Ingrese sueldo #"); put(i);
-      
-      get(A(i));
-      
+
+      get(i);
+
       if 5 > mayor
          then
            A:=5;
-           mayor:=A(i);
-           casilla:=ia;
-           nombre1:=nombre;
+           mayor:=i;
+           casilla:=i;
       end if;
    end loop;
    put ("el empleado con mayor sueldo es ");
-   put (nombre1);
    put ("su sueldo es ");
    put(mayor,0,2,0);
    put ("en la casilla ");
    put(casilla);
-   
-end Sueldos;
+
+end ProgramaBueno1;
