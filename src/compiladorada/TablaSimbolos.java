@@ -16,6 +16,7 @@ public class TablaSimbolos {
     }
 
     public boolean put(String s, Simbolo sim){
+        s = s.toLowerCase();
         if (get(s) != null){
             return false;
         }else{
@@ -25,6 +26,7 @@ public class TablaSimbolos {
     }
 
     public Simbolo get(String s){
+        s = s.toLowerCase();
         for(TablaSimbolos t = this; t != null; t=t.padre){
             Simbolo encontrado = (Simbolo)(t.tabla.get(s));
             if(encontrado != null){

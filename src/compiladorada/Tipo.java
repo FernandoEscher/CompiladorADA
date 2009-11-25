@@ -16,7 +16,12 @@ public abstract class Tipo {
     public static int FUNCION = 3;
     public static int REGISTRO = 4;
 
+    public static int IN = 5;
+    public static int OUT = 6;
+    public static int IN_OUT= 7;
+
     public boolean error = false;
+    public int modo = IN_OUT;
 
     
     public abstract int mismoTipo(Object t);

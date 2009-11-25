@@ -1,15 +1,15 @@
-procedure Holamundo (x: in integer) is
+procedure Holamundo (Holamundo: in integer) is
+      type registro is record
+         x : integer;
+         a : integer := 55;
+      end record;
 
-type registro is
-record
-	x : integer;
-	a : integer := 5;
-end record;
-variable: integer;
-
+      variable: integer;
 begin
-null;
-variable := a**x+44;
-end Holamundo;
+   null;
+   variable := a**x+44;
+   if a<x then
+      x:=57;
+   end if;
 
-function F (i: out float) return float
+end Holamundo;

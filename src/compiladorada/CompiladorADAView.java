@@ -353,12 +353,14 @@ public class CompiladorADAView extends FrameView {
         
         parser p = new parser(new Lexer(new FileReader(filePath)));
         p.parse();
+        this.jTextArea1.append("Compilación completa!\n");
 
       } catch (Exception e) {
         /* do cleanup here -- possibly rethrow e */
-        //this.jTextArea1.setText(e.getStackTrace().toString());
+        for(StackTraceElement s: e.getStackTrace())
+            this.jTextArea1.setText(s + "\n");
     }
-      this.jTextArea1.append("Compilación completa!\n");
+      
     }//GEN-LAST:event_jButton1ActionPerformed
 
 

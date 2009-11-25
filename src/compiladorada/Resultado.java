@@ -12,4 +12,8 @@ package compiladorada;
 public class Resultado {
     public String valex;
     public Tipo tipo;
+    public Simbolo sim1;
+    public Simbolo sim2;
+    public int left;
+    public int right;
 }
