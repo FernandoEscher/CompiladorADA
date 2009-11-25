@@ -104,6 +104,22 @@ action code {:
           else
                 tmpT2 = null;
 
+
+          if(tmpT1 == null && tmpT2 == null){
+                return null;
+          }else{
+                if(tmpT2 == null){
+                    ret = tmpT1.copia();
+                    ret.error = true;
+                    return ret;
+                }else if(tmpT1 == null){
+                    ret = tmpT2.copia();
+                    ret.error = true;
+                    return ret;
+                }
+          }
+
+
           if(!tmpT1.error && !tmpT2.error){
                 ret = tmpT1.copia();
                 ret.error = true;
@@ -182,19 +198,28 @@ action code {:
 
 
    public Tipo comprobacionExpresion(Object p1, Object p2, int p1left, int p1right, String op, boolean esNumerico){
+            Tipo ret =  ErrorTipoDeterminarTipo(p1, p2);
+
+            if(ret == null){
+                hasError = true;
+                return null;
+           }else if(ret.error && (p1 == null || p2 == null)){
+                hasError = true;
+                System.out.println("Error de tipos en la linea " + (p1left+1) + " columna " + (p1right+1)
+                + " : No se pudo determinar el tipo de uno de los operandos.");
+                return ret;
+           }
+
            Tipo tmp1 = (Tipo)p1;
            Tipo tmp2 = (Tipo)p2;
            int error = tmp1.mismoTipo(tmp2);
 
-           Tipo ret;
 
            if(ErrorTipoEsNumerico(p1left, p1right, esNumerico, p1, p2)){
                if(error == 1){
-                    ret = ErrorTipoDeterminarTipo(p1, p2);
                     if(ret.error)
                         System.out.println(ErrorTipoOperacionNoCompatible(p1left, p1right, op, p1, p2));
                }else if(error == 2){
-                    ret = ErrorTipoDeterminarTipo(p1, p2);
                     if(ret.error)
                         System.out.println(ErrorTipoValorIrreconocible(p1left, p1right));
                }
@@ -236,18 +261,28 @@ action code {:
 
 
     public Tipo comprobacionExpresion(Object p1, Object p2, int p1left, int p1right, String op){
-           Tipo ret;
+            Tipo ret =  ErrorTipoDeterminarTipo(p1, p2);
+
+            if(ret == null){
+                hasError = true;
+                return null;
+           }else if(ret.error && (p1 == null || p2 == null)){
+                hasError = true;
+                System.out.println("Error de tipos en la linea " + (p1left+1) + " columna " + (p1right+1)
+                + " : No se pudo determinar el tipo de uno de los operandos.");
+                return ret;
+           }
+
+           
            Tipo tmp1 = (Tipo)p1;
            Tipo tmp2 = (Tipo)p2;
            int error = tmp1.mismoTipo(tmp2);
            
 
            if(error == 1){
-                ret = ErrorTipoDeterminarTipo(p1, p2);
                 if(ret.error)
                     System.out.println(ErrorTipoOperacionNoCompatible(p1left, p1right, op, p1, p2));
            }else if(error == 2){
-                ret = ErrorTipoDeterminarTipo(p1, p2);
                 if(ret.error)
                     System.out.println(ErrorTipoValorIrreconocible(p1left, p1right));
            }
@@ -849,7 +884,9 @@ declaracion                     ::= declaracion_subprograma
                                   ;
 
 llamada_funcion			::= nombre:n PAR_IZQ lista_nombres_variante:lnv PAR_DER
-                                    {: if(n instanceof TipoFuncion){
+                                    {: 
+                                       //FIXME: Aquí no debería ir una lista de nombre, sino de expresiones!
+                                       if(n instanceof TipoFuncion){
                                             
                                             TipoFuncion tipoActual = (TipoFuncion)n;
                                             
@@ -889,7 +926,7 @@ llamada_funcion			::= nombre:n PAR_IZQ lista_nombres_variante:lnv PAR_DER
                                        }else{
                                             hasError = true;
                                             System.out.println("Error de tipos en la linea " + (nleft+1) + " columna " + (nright+1)
-                                                + " : El identificador de la función no ha sido.");
+                                                + " : Esta función no ha sido delcarada.");
                                        }
                                     :}
                                   ;

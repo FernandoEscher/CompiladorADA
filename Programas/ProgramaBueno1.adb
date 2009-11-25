@@ -9,12 +9,13 @@ procedure ProgramaBueno1 (x: in integer) is
       B:integer;
       function Sueldo3 (s:in integer; y:out boolean) return integer is
           C:float;
-	  M:integer;
+	  M:integer := 3;
       begin
           C:=((5.9 / 4.6)*(8.7+6.5)-5.3)**8.4;
 	  M:=64*98;
 	  if ((5>=5) and (5<=6)) or (7>6) then
              C:=(9.0**5.6);
+	s:=4;
           end if;
       end Sueldo3;
 
@@ -25,7 +26,7 @@ procedure ProgramaBueno1 (x: in integer) is
       end Sueldo4;
 
    begin
-      A:=Sueldo3(a, z);
+      B:=Sueldo3(a,true);
       A:=5;
    end Sueldo2;
 

@@ -1,15 +1,9 @@
-procedure Holamundo (f: in out integer) is
-      type registro is record
-         x : integer;
-         a : integer := 55;
-      end record;
+procedure ProgramaBueno2  is
 
-      variable: integer;
+   variable: integer;
+
 begin
-   null;
-   variable := a**x+44;
-   if a<x then
-      x:=57;
-   end if;
 
-end Holamundo;
+   variable:= (a**b)+44;
+
+end ProgramaBueno2;

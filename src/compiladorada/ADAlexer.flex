@@ -26,16 +26,17 @@ import java_cup.runtime.*;
 
 letra = [a-zA-Z]
 digito = [0-9]
-saltolinea = (\n | \r | \r\n | \n\r)+
-espacio = (" " | {saltolinea} | \t | \f)+
+saltolinea = \n | \r | \r\n 
+espacio = (" " | {saltolinea} | \t | \f | [\t\f])+
 char = "'"{letra}"'"
 float = {digito}+"."{digito}+
 boolean = "true" | "false"
 id = {letra}({digito}|{letra}|"_")*
 numero = {digito}+
-comentario = "--"({letra}|{digito}|{espacio} | "~" | "!" | "¡" | "@" | "#" | "$" | "%" | "^" | "&" | "(" | ")" | "_" | "+" | "-" | "=" | "{" | "}" | "[" | "]" | "|" | "<" | ">" | "?" | "¿" | "`" | "," | "." | ";" | ":" | "/" | "\\" | \" | "|" |"€")* {saltolinea}
+comentario = "--"({letra}|{digito}|{espacio} | "~" | "!" | "¡" | "@" | "#" | "$" | "%" | "^" | "&" | "(" | ")" | "_" | "+" | "-" | "=" | "{" | "}" | "[" | "]" | "|" | "<" | ">" | "?" | "¿" | "`" | "," | "." | ";" | ":" | "/" | "\\" | \" | "|" |"€")* 
 
 %state YYCADENA
+%state YYCOMENTARIO
 
 %%
 
@@ -155,9 +156,16 @@ comentario = "--"({letra}|{digito}|{espacio} | "~" | "!" | "¡" | "@" | "#" | "$
 {boolean}               {return symbol(sym.BOOLEAN_LITERAL, new Boolean(Boolean.parseBoolean(yytext())));}
 {id}			{return symbol(sym.IDENTIFICADOR, yytext());}
 {espacio}		{}
-{comentario}		{}
+{comentario}		{yybegin(YYCOMENTARIO);}
 .			{System.out.println("Error lexico. El caracter "+yytext()+ " en la linea "+ yyline+ " y columna "+yycolumn+ " no es reconocido");}
 <<EOF>>			{return symbol(sym.EOF);}
+
+}
+
+<YYCOMENTARIO>{
+
+{saltolinea}		{yybegin(YYINITIAL);}
+.			{}
 
 }
 
