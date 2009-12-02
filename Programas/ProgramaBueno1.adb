@@ -26,7 +26,7 @@ procedure ProgramaBueno1 (x: in integer) is
       end Sueldo4;
 
    begin
-      B:=Sueldo3(a,true);
+      B:=Sueldo3(5*4,5<3);
       A:=5;
    end Sueldo2;
 

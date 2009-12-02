@@ -823,12 +823,22 @@ sentencia_put 			::= PUT PAR_IZQ lista_expresiones_variante PAR_DER PUNTO_Y_COMA
 sentencia_get 			::= GET PAR_IZQ lista_expresiones_variante PAR_DER PUNTO_Y_COMA
                                   ;
 
-lista_expresiones_variante	::=
-                                  | lista_expresiones
+lista_expresiones_variante	::= {: RESULT = null; :}
+                                  | lista_expresiones:le
+                                    {: RESULT = le; :}
                                   ;
 
-lista_expresiones  		::= expresion
-                                  | lista_expresiones COMA expresion
+lista_expresiones  		::= expresion:e
+                                    {: ArrayList<Tipo> resultado =  new ArrayList<Tipo>();
+                                       resultado.add((Tipo)e);
+                                       RESULT = resultado;
+                                    :}
+
+
+                                  | lista_expresiones:le COMA expresion:e
+                                    {: ((ArrayList<Tipo>) le).add((Tipo)e);
+                                       RESULT = le;
+                                    :}
                                   ;
 
 
@@ -883,7 +893,7 @@ declaracion                     ::= declaracion_subprograma
 				  | error
                                   ;
 
-llamada_funcion			::= nombre:n PAR_IZQ lista_nombres_variante:lnv PAR_DER
+llamada_funcion			::= nombre:n PAR_IZQ lista_expresiones_variante:lnv PAR_DER
                                     {: 
                                        //FIXME: Aquí no debería ir una lista de nombre, sino de expresiones!
                                        if(n instanceof TipoFuncion){
@@ -930,7 +940,7 @@ llamada_funcion			::= nombre:n PAR_IZQ lista_nombres_variante:lnv PAR_DER
                                        }
                                     :}
                                   ;
-
+/*
 lista_nombres_variante	::=         {: RESULT = null; :}
                                   | lista_nombres:ln
                                     {: RESULT = ln; :}
@@ -948,6 +958,7 @@ lista_nombres   		::= nombre:n
                                        RESULT = ln;
                                     :}
                                   ;
+*/
 
 declaracion_record		::= TYPE IDENTIFICADOR IS definicion_record PUNTO_Y_COMA
                                   ;
