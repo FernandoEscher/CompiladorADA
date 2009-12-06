@@ -1,9 +1,17 @@
 procedure ProgramaBueno2  is
+   
+   a:integer;
+   
+   Type entero is
+   record
+	x:integer:=5;
+   end record;	
 
-   variable: integer;
+   b:entero;
 
 begin
 
-   variable:= (a**b)+44;
+     b.x:=a;
+     a := 5;
 
 end ProgramaBueno2;

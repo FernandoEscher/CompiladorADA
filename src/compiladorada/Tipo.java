@@ -15,6 +15,7 @@ public abstract class Tipo {
     public static int BOOLEAN = 2;
     public static int FUNCION = 3;
     public static int REGISTRO = 4;
+    public static int REGISTRO_INST = 5;
 
     public static int IN = 5;
     public static int OUT = 6;

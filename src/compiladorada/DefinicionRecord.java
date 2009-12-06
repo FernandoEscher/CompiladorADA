@@ -14,7 +14,16 @@ public class DefinicionRecord extends Tipo{
     public TablaSimbolos tabla;
 
 
-    public DefinicionRecord(){}
+    public DefinicionRecord(){
+        nombre = "";
+        tabla = new TablaSimbolos(null);
+    }
+
+    public DefinicionRecord(String n){
+        nombre = n;
+        tabla = new TablaSimbolos(null);
+        tabla.nombre = n;
+    }
 
     @Override
     public int mismoTipo(Object t) {

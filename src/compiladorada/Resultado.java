@@ -16,4 +16,6 @@ public class Resultado {
     public Simbolo sim2;
     public int left;
     public int right;
+    public DefinicionRecord rec;
+    public TablaSimbolos tabla;
 }

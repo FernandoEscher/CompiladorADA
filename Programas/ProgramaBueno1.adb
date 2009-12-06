@@ -1,6 +1,6 @@
 procedure ProgramaBueno1 (x: in integer) is
    A:integer:=56;
-   Z:boolean:=false;
+   Z:integer:=5;
    Q:float:=5.6;
    casilla,n:integer;
    i:integer:=0;
@@ -10,8 +10,18 @@ procedure ProgramaBueno1 (x: in integer) is
       function Sueldo3 (s:in integer; y:out boolean) return integer is
           C:float;
 	  M:integer := 3;
+
+	  type tipos is
+          record
+             f:float;
+             i:integer;
+             b:boolean;
+	  end record;
+
+          r:tipos;
       begin
-          C:=((5.9 / 4.6)*(8.7+6.5)-5.3)**8.4;
+          r.f := 5.6;
+          C:=((5.9 / 4.6)*(8.7+r.f)-5.3)**8.4;
 	  M:=64*98;
 	  if ((5>=5) and (5<=6)) or (7>6) then
              C:=(9.0**5.6);
