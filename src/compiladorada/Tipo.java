@@ -23,6 +23,7 @@ public abstract class Tipo {
 
     public boolean error = false;
     public int modo = IN_OUT;
+    public boolean constante=false;
 
     
     public abstract int mismoTipo(Object t);

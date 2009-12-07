@@ -1,17 +1,9 @@
-procedure ProgramaBueno2  is
+procedure ProgramaBueno2 is
    
-   a:integer;
-   
-   Type entero is
-   record
-	x:integer:=5;
-   end record;	
-
-   b:entero;
+   a: integer:=5;
+  
 
 begin
-
-     b.x:=a;
-     a := 5;
-
+   a:= 2; 	
+  
 end ProgramaBueno2;

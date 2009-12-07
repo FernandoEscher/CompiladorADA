@@ -18,4 +18,5 @@ public class Resultado {
     public int right;
     public DefinicionRecord rec;
     public TablaSimbolos tabla;
+    public boolean soloIn=true;
 }

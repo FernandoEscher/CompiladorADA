@@ -15,10 +15,12 @@ public class Simbolo {
     public String id;
     public Tipo tipo;
     public long direccion;
+    public boolean constante;
 
     public Simbolo(String id, Tipo t){
         this.id = id;
         tipo = t;
+        constante=false;
     }
 
 }

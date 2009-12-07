@@ -1,4 +1,4 @@
-procedure ProgramaBueno1 (x: in integer) is
+procedure ProgramaBueno1 (x: out integer) is
    A:integer:=56;
    Z:integer:=5;
    Q:float:=5.6;
@@ -7,9 +7,9 @@ procedure ProgramaBueno1 (x: in integer) is
    Mayor:integer;
    procedure Sueldo2 (v:in integer) is
       B:integer;
-      function Sueldo3 (s:in integer; y:out boolean) return integer is
+      function Sueldo3 (s: integer; y: boolean) return integer is
           C:float;
-	  M:integer := 3;
+	  M: integer := 5;
 
 	  type tipos is
           record
@@ -25,7 +25,6 @@ procedure ProgramaBueno1 (x: in integer) is
 	  M:=64*98;
 	  if ((5>=5) and (5<=6)) or (7>6) then
              C:=(9.0**5.6);
-	s:=4;
           end if;
       end Sueldo3;
 
