@@ -341,8 +341,9 @@ lista_expresiones  		::= expresion:e
                                   ;
 
 
-sentencia_retorno		::= RETURN PUNTO_Y_COMA
-                                  | RETURN expresion PUNTO_Y_COMA
+sentencia_retorno		::= RETURN expresion PUNTO_Y_COMA
+                                  | RETURN PUNTO_Y_COMA
+                                   
                                   ;
 
 sentencia_if			::= IF:e condicion THEN secuencia_de_sentencias lista_elsif0 else_variante END IF PUNTO_Y_COMA

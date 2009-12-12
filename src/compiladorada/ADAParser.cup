@@ -11,6 +11,10 @@ action code {:
    public TablaSimbolos tablaActual = new TablaSimbolos(null);
    public boolean hasError = false;
    public String fileName;
+   public boolean hayRetorno = false;
+   public ArrayList<Tipo> retorno = new ArrayList<Tipo>();
+   public ArrayList<Integer> retLeft = new ArrayList<Integer>();
+   public ArrayList<Integer> retRight = new ArrayList<Integer>();
 
    
 
@@ -709,8 +713,49 @@ cuerpo_subprograma 		::=   especific_subprograma_es:ese
                                     	 parte_declarativa					
                                    BEGIN 
                                         secuencia_de_sentencias
-                                   END {:pila.pop();:}
-					designador_variante:dv PUNTO_Y_COMA
+
+                                   END 
+                                   {: pila.pop();
+
+                                      if(((Resultado)ese).tipo != null){
+                                         TipoFuncion tipoRet = (TipoFuncion)(((Resultado)ese).tipo);
+                                         if(tipoRet.retorno != null){
+                                            if(hayRetorno){
+                                                for(int i =0; i<retorno.size(); i++){
+                                                    int mismo = tipoRet.retorno.mismoTipo(retorno.get(i));
+                                                    if(mismo == 1){
+                                                        hasError = true;
+                                                        System.out.println("Error en la linea "+ (retLeft.get(i)+1) + " columna "
+                                                        + (retRight.get(i)+1) + " : El tipo de retorno no es compatible con el especificado en la funcion.");
+                                                    }else if(mismo == 2){
+                                                        hasError = true;
+                                                        System.out.println("Error en la linea "+ (retLeft.get(i)+1) + " columna "
+                                                        + (retRight.get(i)+1) + " : No se ha podido determinar el tipo de la sentencia de retorno.");
+                                                    }
+                                                }
+                                            }else{
+                                                hasError = true;
+                                                System.out.println("Error en la linea "+ (eseleft+1) + " columna "
+                                                + (eseright+1) + " : No hay una sentencia de retorno dentro de la función.");
+                                            }
+                                         }else{
+                                            if(hayRetorno){
+                                                hasError = true;
+                                                for(int i =0; i<retorno.size(); i++){
+                                                    System.out.println("Error en la linea "+ (retLeft.get(i)+1) + " columna "
+                                                    + (retRight.get(i)+1) + " : No puede haber una sentencia de retorno con tipo en un procedimiento.");
+                                                }
+                                            }
+                                         }
+                                      }
+
+                                      retorno = new ArrayList<Tipo>();
+                                      hayRetorno =false;
+                                      retLeft = new ArrayList<Integer>();
+                                      retRight = new ArrayList<Integer>();
+                                   :}
+
+                                   designador_variante:dv PUNTO_Y_COMA
                                     {:if(!((Resultado)ese).valex.equals(dv)){
                                         hasError = true;
                                         System.out.println("Error en la linea "+ (dvleft+1) + " columna "
@@ -924,8 +969,21 @@ lista_expresiones  		::= expresion:e
                                   ;
 
 
-sentencia_retorno		::= RETURN PUNTO_Y_COMA
-                                  | RETURN expresion PUNTO_Y_COMA
+sentencia_retorno		::= RETURN expresion:e PUNTO_Y_COMA
+                                    {:
+                                        if(e != null){
+                                            retorno.add((Tipo)e);
+                                        }else{
+                                            hasError=true;
+                                            System.out.println("Error de tipos en la linea " + (eleft+1) + " columna " + (eright+1)
+                                                    + ": No se ha podido determinar el tipo del retorno");
+                                        }
+                                        hayRetorno = true;
+                                        retLeft.add(new Integer(eleft));
+                                        retRight.add(new Integer(eright));
+                                    :}
+
+                                  | RETURN PUNTO_Y_COMA
                                   ;
 
 sentencia_if			::= IF:e {: pila.push("IF"); :}

@@ -25,7 +25,9 @@ procedure ProgramaBueno1 (x: out integer) is
 	  M:=64*98;
 	  if ((5>=5) and (5<=6)) or (7>6) then
              C:=(9.0**5.6);
+	     return 56;
           end if;
+          return 83;
       end Sueldo3;
 
       procedure Sueldo4 is
@@ -46,7 +48,6 @@ begin
       put("Ingrese sueldo #"); put(i);
 
       get(i);
-
       if 5 > mayor
          then
            A:=5;
