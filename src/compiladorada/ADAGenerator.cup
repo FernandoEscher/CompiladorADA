@@ -1,42 +1,21 @@
 package compiladorada;
-import java.util.Stack;
-import java.util.ArrayList;
+
+
 /* ----------------------Preliminary Declarations Section--------------------*/
+
+init with{:
+    action_obj.filename = nf;
+:}
+
 action code {:
-   
+    public String filename;
+    GeneradorASM gen = new GeneradorASM();
 :};
 
 parser code {:
-    public boolean hasError = false;
-    public void report_error(String message, Object info) {
-
-        StringBuffer m = new StringBuffer("Error");
-
-        if(message.equals("Syntax error"))
-                message = "Error sintáctico";
-        else if (message.equals("Couldn't repair and continue parse"))
-		if(!action_obj.pila.empty())
-                    message = "Fin del archivo sin completar la sentencia " + action_obj.pila.pop();
-                else
-                    message = "No se pudo recuperar para continuar el parseo";
-
-        if (info instanceof java_cup.runtime.Symbol) {
-            java_cup.runtime.Symbol s = ((java_cup.runtime.Symbol) info);
-
-            if (s.left >= 0) {
-                m.append(" en la línea "+(s.left+1));
-                if (s.right >= 0)
-                    m.append(", columna "+(s.right+1));
-            }
-        }
-        hasError=true;
-        m.append(" : "+message);
-	System.err.println(m);
-    }
-    public void report_fatal_error(String message, Object info) {
-        report_error(message, info);
-
-	//System.exit(1);
+    String nf;
+    public void setNombreArchivo(String f){
+        nf = f;
     }
 :};
 
@@ -84,6 +63,9 @@ non terminal sentencia_llamada_funcion, literal_booleano, literal_record;
 start with raiz;
 
 raiz				::= lista_compilacion
+                                    {:
+                                        gen.generarASM(filename);
+                                    :}
                                 ;
 
 lista_compilacion		::= unidad_compilacion
@@ -94,7 +76,7 @@ unidad_compilacion		::=  declaracion_subprograma
                                   |  cuerpo_subprograma
                                 ;
 
-nombre				::= IDENTIFICADOR:id
+nombre				::= IDENTIFICADOR:id {: RESULT = id; :}
                                   | operador_simbolo
                                 ;
 
@@ -109,11 +91,12 @@ designador			::= IDENTIFICADOR:id
                                   | operador_simbolo
                                 ;
 
-operador_simbolo		::= CADENA_LITERAL:cl
+operador_simbolo		::= CADENA_LITERAL:cl 
                                 ;
 
-parte_formal_variante		::=
+parte_formal_variante		::= 
                                   | parte_formal:pf
+                                    
                                 ;
 
 parte_formal			::= PAR_IZQ lista_declaracion_parametro:ldp PAR_DER
@@ -141,14 +124,15 @@ modo				::=
                                 ;
 
 inicializacion_opcion		::=
-                                  | ASIGNACION expresion:e 
+                                  | ASIGNACION expresion:e {: RESULT = e; :}
                                 ;
 
-lista_identificador2		::= IDENTIFICADOR:id1 COMA IDENTIFICADOR:id2  
+lista_identificador2		::= IDENTIFICADOR:id1 COMA IDENTIFICADOR:id2
+
                                   | lista_identificador2:li2 COMA IDENTIFICADOR:id 
                                 ;
 
-expresion 			::= relacion:r
+expresion 			::= relacion:r 
                                   | expresion_and:ea 
                                   | expresion_or:eo 
                                   | expresion_xor:ex 
@@ -176,11 +160,12 @@ expresion_andthen		::= relacion:r1 AND THEN relacion:r2
 
 expresion_orelse		::= relacion:r1 OR ELSE relacion:r2
                                   | expresion_orelse OR ELSE relacion
-
                                   ;
 
-relacion			::= expresion_simple:es 
+relacion			::= expresion_simple:es
                                   | expresion_simple:es1 operador_relacional:op expresion_simple:es2
+                                    
+                               //   | expresion_simple operador_membresia indicacion_subtipo
                                   | expresion_simple operador_membresia rango
                                   ;
 
@@ -205,36 +190,42 @@ operador_membresia		::= IN
 
 
 operador_unario			::= MAS 
-                                  | MENOS
+                                  | MENOS 
                                   ;
 
 operador_suma			::= MAS 
                                   | MENOS 
-                                  | CONCATENAR
+                                  | CONCATENAR 
                                   ;
 
-operador_multiplicacion		::= MULTIPLICACION
-                                  | DIVISION
+operador_multiplicacion		::= MULTIPLICACION 
+                                  | DIVISION 
                                   | MOD 
                                   | REM 
                                   ;
 
-lista_terminos			::= termino:t 
+lista_terminos			::= termino:t {: RESULT = t; :}
                                   | lista_terminos:lt operador_suma:op termino:t
+                                    {:
+                                        gen. codigoFuncional += "\t\t\tlw\t$t0, _" + lt + "\n";
+                                        gen. codigoFuncional += "\t\t\tlw\t$t1, _" + t + "\n";
+                                        gen. codigoFuncional += "\t\t\tadd\t$t2, $t0, $t1\n";
+                                    :}
+                                    
+
                                   ;
 
-termino				::= factor:f 
+termino				::= factor:f {: RESULT = f; :}
                                   | termino:t operador_multiplicacion:op factor:f
-
                                   ;
 
-factor				::= primario:p 
+factor				::= primario:p {: RESULT = p; :}
                                   | ABS primario:p
                                   | NOT primario:p
                                   | primario:p1 EXPONENTE primario:p2
                                   ;
 
-primario			::= nombre:n 
+primario			::= nombre:n {: RESULT = n; :}
                                   | literal:l 
                                   | PAR_IZQ expresion:e PAR_DER 
                                   | llamada_funcion:lf 
@@ -242,25 +233,23 @@ primario			::= nombre:n
                                   ;
 
 
-literal				::= NULL 
+literal				::= NULL
                                   | literal_numerico:ln 
                                   | literal_booleano:lb 
                                   ;
 
-literal_record                  ::= nombre:n1
-                                    PUNTO nombre:n2
+literal_record                  ::= nombre:n1 PUNTO nombre:n2
                                   ;
 
-literal_numerico 		::= ENTERO_LITERAL:el 
-                                  | REAL_LITERAL:rl 
+literal_numerico 		::= ENTERO_LITERAL:el
+                                  | REAL_LITERAL:rl
                                   ;
 
-literal_booleano                ::= BOOLEAN_LITERAL:bl 
+literal_booleano                ::= BOOLEAN_LITERAL:bl
                                   ;
 
 
-
-cuerpo_subprograma 		::=   especific_subprograma_es:ese
+cuerpo_subprograma 		::=   especific_subprograma_es:ese {: gen.codigoFuncional += "main:\n"; :}
                                     	 parte_declarativa
                                    BEGIN
                                         secuencia_de_sentencias
@@ -327,6 +316,10 @@ sentencia_nula			::= NULL PUNTO_Y_COMA
                                   ;
 
 sentencia_asignacion		::= nombre:n ASIGNACION expresion:e PUNTO_Y_COMA
+                                    {: gen.codigoFuncional += "\t\t\tmove\t$t0, $t2\n";
+                                       gen.codigoFuncional += "\t\t\tsw\t$t0, _X\n";
+                                    :}
+
                                   | literal_record:lr ASIGNACION expresion:e PUNTO_Y_COMA
                                   ;
 
@@ -339,7 +332,7 @@ sentencia_put 			::= PUT PAR_IZQ lista_expresiones_variante PAR_DER PUNTO_Y_COMA
 sentencia_get 			::= GET PAR_IZQ lista_expresiones_variante PAR_DER PUNTO_Y_COMA
                                   ;
 
-lista_expresiones_variante	::=
+lista_expresiones_variante	::= 
                                   | lista_expresiones:le
                                   ;
 
@@ -352,8 +345,7 @@ sentencia_retorno		::= RETURN PUNTO_Y_COMA
                                   | RETURN expresion PUNTO_Y_COMA
                                   ;
 
-sentencia_if			::= IF:e condicion THEN secuencia_de_sentencias
-                                        lista_elsif0 else_variante END IF PUNTO_Y_COMA
+sentencia_if			::= IF:e condicion THEN secuencia_de_sentencias lista_elsif0 else_variante END IF PUNTO_Y_COMA
                                   ;
 
 lista_elsif0			::=
@@ -364,24 +356,22 @@ else_variante			::=
                                   | ELSE secuencia_de_sentencias
                                   ;
 
-condicion			::= expresion:e {: RESULT = e; :}
+condicion			::= expresion:e 
                                   ;
 
 sentencia_loop			::= iteracion_clausula_variante:icv loop_basico PUNTO_Y_COMA
-
                                   ;
 
-loop_basico			::= LOOP:l {: pila.push("LOOP"); :} secuencia_de_sentencias END LOOP {: pila.pop(); :}
+loop_basico			::= LOOP:l secuencia_de_sentencias END LOOP
                                   ;
 
 iteracion_clausula_variante	::=
                                   | FOR nombre:n IN rango
-
                                   | WHILE condicion
                                   ;
 
 designador_variante		::=
-                                  | designador:ds {: RESULT = ds; :}
+                                  | designador:ds
                                   ;
 
 declaracion                     ::= declaracion_subprograma
@@ -392,10 +382,17 @@ declaracion                     ::= declaracion_subprograma
 
 llamada_funcion			::= nombre:n PAR_IZQ lista_expresiones_variante:lnv PAR_DER
                                   ;
+/*
+lista_nombres_variante          ::=
+                                  | lista_nombres:ln
+                                  ;
 
+lista_nombres   		::= nombre:n
+                                  | lista_nombres:ln COMA nombre:n
+                                  ;
+*/
 
-declaracion_record		::= TYPE IDENTIFICADOR:id IS
-
+declaracion_record		::= TYPE IDENTIFICADOR:id IS definicion_record:dr PUNTO_Y_COMA
                                   ;
 
 definicion_record		::= RECORD lista_componentes END RECORD
@@ -410,7 +407,15 @@ lista_declaracion_componentes0	::=
                                   ;
 
 declaracion_componente		::= IDENTIFICADOR:id DOS_PUNTOS indicacion_subtipo:ist inicializacion_opcion:io PUNTO_Y_COMA
+                                    {: gen.codigoDeclaracion += "_" + id + ": \t\t\t" + ".word ";
+                                       if(io != null){
+                                            gen.codigoDeclaracion += (Integer)io + "\n";
+                                       }else{
+                                            gen.codigoDeclaracion += "0\n";
+                                       }
+                                    :}
+
+
                                   | lista_identificador2:li2 DOS_PUNTOS indicacion_subtipo:ist inicializacion_opcion:io PUNTO_Y_COMA
                                   | IDENTIFICADOR:id DOS_PUNTOS CONSTANT indicacion_subtipo:ist inicializacion_opcion:io PUNTO_Y_COMA
-
                                   ;

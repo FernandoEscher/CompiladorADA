@@ -352,6 +352,7 @@ public class CompiladorADAView extends FrameView {
         jMenuItem2ActionPerformed(evt);
         
         parser p = new parser(new Lexer(new FileReader(filePath)));
+        p.setFileName(filePath);
         p.parse();
         this.jTextArea1.append("Compilación completa!\n");
 

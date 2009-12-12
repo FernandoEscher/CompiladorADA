@@ -1,11 +1,18 @@
 package compiladorada;
 import java.util.Stack;
 import java.util.ArrayList;
+import java.io.FileReader;
 /* ----------------------Preliminary Declarations Section--------------------*/
+init with{: action_obj.fileName = fileName; :}
+
+
 action code {:
    public Stack pila = new Stack();
    public TablaSimbolos tablaActual = new TablaSimbolos(null);
    public boolean hasError = false;
+   public String fileName;
+
+   
 
    public String ErrorTipoIdDeclarado(int left, int right, String id){
         hasError = true;
@@ -295,7 +302,7 @@ action code {:
 :};
 
 parser code {:
-    public boolean hasError = false;
+    public String fileName;
     public void report_error(String message, Object info) {
 
         StringBuffer m = new StringBuffer("Error");
@@ -317,7 +324,7 @@ parser code {:
                     m.append(", columna "+(s.right+1));
             }
         }
-        hasError=true;
+        action_obj.hasError=true;
         m.append(" : "+message);
 	System.err.println(m);
     }
@@ -325,6 +332,10 @@ parser code {:
         report_error(message, info);
         
 	//System.exit(1);
+    }
+
+    public void setFileName(String f){
+        fileName = f;
     }
 :};
 
@@ -373,6 +384,13 @@ start with raiz;
 
 raiz				::= {: tablaActual.nombre = "$programa$principal$"; :}
                                     lista_compilacion
+                                    {: if(!hasError){
+                                            Generator g = new Generator(new Lexer(new FileReader(fileName)));
+                                            g.setNombreArchivo(fileName);
+                                            g.parse();
+                                       }
+                                    :}
+
                                 ;
 
 lista_compilacion		::= unidad_compilacion
