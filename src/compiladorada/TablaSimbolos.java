@@ -36,6 +36,19 @@ public class TablaSimbolos {
         return null;
     }
 
+    public TablaSimbolos copia(){
+        TablaSimbolos ts;
+        if(padre != null)
+            ts = new TablaSimbolos(padre.copia());
+        else
+            ts = new TablaSimbolos(null);
+
+        ts.tabla = (Hashtable)tabla.clone();
+        ts.nombre = nombre;
+
+        return ts;
+    }
+
     public String toString(){
         return nombre + ": " + tabla.toString();
     }

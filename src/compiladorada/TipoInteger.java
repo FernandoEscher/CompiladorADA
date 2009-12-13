@@ -20,6 +20,10 @@ public class TipoInteger extends Tipo{
         valor = ((Integer)v).intValue();
     }
 
+    public TipoInteger(int anch){
+         super.anchura = anch;
+    }
+
 
     @Override
     public int mismoTipo(Object t){
@@ -46,7 +50,7 @@ public class TipoInteger extends Tipo{
 
     public String toString(){
 
-        return "Es un Integer!";
+        return "Integer";
 
     }
 

@@ -18,6 +18,7 @@ public class GeneradorASM {
 
     public String codigoDeclaracion;
     public String codigoFuncional;
+    
 
     public boolean esMain=true;
 

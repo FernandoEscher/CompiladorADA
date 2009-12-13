@@ -20,6 +20,10 @@ public class TipoBoolean extends Tipo{
         valor = ((Boolean)v).booleanValue();
     }
 
+     public TipoBoolean(int anch){
+        super.anchura = anch;
+     }
+
     @Override
     public int mismoTipo(Object t) {
         if (t instanceof Tipo)
@@ -43,7 +47,7 @@ public class TipoBoolean extends Tipo{
 
     public String toString(){
 
-        return "Es un Boolean!";
+        return "Boolean!";
 
     }
 

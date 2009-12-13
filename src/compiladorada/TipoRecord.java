@@ -25,6 +25,12 @@ public class TipoRecord extends Tipo{
         definicion = d;
     }
 
+    public TipoRecord(DefinicionRecord d){
+        nombreRecord = "";
+        definicion = d;
+        super.anchura = definicion.anchura;
+    }
+
     @Override
     public int mismoTipo(Object t) {
         if (t instanceof Tipo)
@@ -53,7 +59,7 @@ public class TipoRecord extends Tipo{
 
     public String toString(){
 
-        return "Es un Record!";
+        return nombreRecord;
 
     }
 

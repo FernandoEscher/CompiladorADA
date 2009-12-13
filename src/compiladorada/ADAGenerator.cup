@@ -1,4 +1,12 @@
 package compiladorada;
+import java.util.Stack;
+import java.util.ArrayList;
+import java.io.BufferedWriter;
+import java.io.Writer;
+import java.io.FileWriter;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+
 
 
 /* ----------------------Preliminary Declarations Section--------------------*/
@@ -10,6 +18,15 @@ init with{:
 action code {:
     public String filename;
     GeneradorASM gen = new GeneradorASM();
+    GeneradorIntermedio genInt = new GeneradorIntermedio();
+
+    public Stack<TablaSimbolos> env = new Stack<TablaSimbolos>();
+    public Stack<Integer> pila = new Stack<Integer>();
+    public int desplazamiento = 0;
+    public TablaSimbolos superior = new TablaSimbolos(null);
+
+
+
 :};
 
 parser code {:
@@ -56,15 +73,16 @@ non terminal sentencia_asignacion, sentencia_salida, sentencia_retorno, sentenci
 non terminal else_variante, loop_basico, declaracion_numero, lista_cuerpo0, nombre_variante, lista_elsif0;
 non terminal iteracion_clausula_variante, lista_nombres_variante, lista_nombres, lista_expresiones_variante, lista_expresiones, sentencia_put, sentencia_get;
 non terminal declaracion_record, definicion_record, lista_componentes, lista_declaracion_componentes0, declaracion_componente;
-non terminal sentencia_llamada_funcion, literal_booleano, literal_record;
+non terminal sentencia_llamada_funcion, literal_booleano, literal_record, M, N;
 
 
 /*---------------Gramatica--------------------*/
 start with raiz;
 
-raiz				::= lista_compilacion
+raiz				::= {: System.out.println("Generando código intermedio..."); :}
+                                    lista_compilacion
                                     {:
-                                        gen.generarASM(filename);
+                                        genInt.escribirFlujo();
                                     :}
                                 ;
 
@@ -76,7 +94,10 @@ unidad_compilacion		::=  declaracion_subprograma
                                   |  cuerpo_subprograma
                                 ;
 
-nombre				::= IDENTIFICADOR:id {: RESULT = id; :}
+nombre				::= IDENTIFICADOR:id
+                                    {:
+                                        RESULT = superior.get(id);
+                                    :}
                                   | operador_simbolo
                                 ;
 
@@ -102,10 +123,10 @@ parte_formal_variante		::=
 parte_formal			::= PAR_IZQ lista_declaracion_parametro:ldp PAR_DER
                                 ;
 
-indicacion_subtipo		::= INTEGER:i 
-                                  | BOOLEAN:b 
-                                  | FLOAT:f   
-                                  | nombre:n
+indicacion_subtipo		::= INTEGER:i {: RESULT = new TipoInteger(4); :}
+                                  | BOOLEAN:b {: RESULT = new TipoBoolean(4); :}
+                                  | FLOAT:f   {: RESULT = new TipoFloat(8); :}
+                                  | nombre:n  {: RESULT = new TipoRecord((DefinicionRecord)(((Simbolo)n).tipo.copia())); :}
                                 ;
 
 lista_declaracion_parametro     ::= declaracion_parametro:dp
@@ -132,7 +153,7 @@ lista_identificador2		::= IDENTIFICADOR:id1 COMA IDENTIFICADOR:id2
                                   | lista_identificador2:li2 COMA IDENTIFICADOR:id 
                                 ;
 
-expresion 			::= relacion:r 
+expresion 			::= relacion:r {: RESULT = r; :}
                                   | expresion_and:ea 
                                   | expresion_or:eo 
                                   | expresion_xor:ex 
@@ -141,12 +162,42 @@ expresion 			::= relacion:r
 				  | error
                                   ;
 
-expresion_and			::= relacion:r1 AND relacion:r2
-                                  | expresion_and AND relacion
+expresion_and			::= relacion:r1 AND M:m relacion:r2
+                                    {:
+                                        Resultado res =  new Resultado();
+                                        genInt.backpatch(((Resultado)r1).listatrue, ((Integer)m).intValue());
+                                        res.listatrue = ((Resultado)r2).listatrue;
+                                        res.listafalse = genInt.combinar(((Resultado)r1).listafalse, ((Resultado)r2).listafalse);
+                                        RESULT = res;
+                                    :}
+
+                                  | expresion_and:r1 AND M:m relacion:r2
+                                    {:
+                                        Resultado res =  new Resultado();
+                                        genInt.backpatch(((Resultado)r1).listatrue, ((Integer)m).intValue());
+                                        res.listatrue = ((Resultado)r2).listatrue;
+                                        res.listafalse = genInt.combinar(((Resultado)r1).listafalse, ((Resultado)r2).listafalse);
+                                        RESULT = res;
+                                    :}
                                   ;
 
-expresion_or			::= relacion:r1 OR relacion:r2
-                                  | expresion_or OR relacion
+expresion_or			::= relacion:r1 OR M:m relacion:r2
+                                    {:
+                                        Resultado res =  new Resultado();
+                                        genInt.backpatch(((Resultado)r1).listafalse, ((Integer)m).intValue());
+                                        res.listafalse = ((Resultado)r2).listafalse;
+                                        res.listatrue = genInt.combinar(((Resultado)r1).listatrue, ((Resultado)r2).listatrue);
+                                        RESULT = res;
+                                    :}
+
+                                  | expresion_or:r1 OR M:m relacion:r2
+                                    {:
+                                        Resultado res =  new Resultado();
+                                        genInt.backpatch(((Resultado)r1).listafalse, ((Integer)m).intValue());
+                                        res.listafalse = ((Resultado)r2).listafalse;
+                                        res.listatrue = genInt.combinar(((Resultado)r1).listatrue, ((Resultado)r2).listatrue);
+                                        RESULT = res;
+                                    :}
                                   ;
 
 expresion_xor			::= relacion:r1 XOR relacion:r2
@@ -162,9 +213,16 @@ expresion_orelse		::= relacion:r1 OR ELSE relacion:r2
                                   | expresion_orelse OR ELSE relacion
                                   ;
 
-relacion			::= expresion_simple:es
+relacion			::= expresion_simple:es {: RESULT = es; :}
                                   | expresion_simple:es1 operador_relacional:op expresion_simple:es2
-                                    
+                                    {:
+                                        Resultado res = new Resultado();
+                                        res.listatrue = genInt.crearLista(genInt.siginstr());
+                                        res.listafalse = genInt.crearLista(genInt.siginstr()+1);
+                                        genInt.generarIf((String)op, (String)es1, (String)es2, "-");
+                                        genInt.generarGoto("-");
+                                        RESULT = res;
+                                    :}
                                //   | expresion_simple operador_membresia indicacion_subtipo
                                   | expresion_simple operador_membresia rango
                                   ;
@@ -172,16 +230,19 @@ relacion			::= expresion_simple:es
 rango				::= expresion_simple:es1 RANGO expresion_simple:es2
                                   ;
 
-expresion_simple		::= lista_terminos:lt
-                                  | operador_unario lista_terminos:lt
+expresion_simple		::= lista_terminos:lt {: RESULT = lt; :}
+                                  | operador_unario:ou lista_terminos:lt
+                                    {:
+                                        RESULT = genInt.generarOperacion((String)ou, (String)lt, (String)lt);
+                                    :}
                                   ;
 
-operador_relacional		::= IGUAL 
-                                  | DISTINTO_DE 
-                                  | MENOR_QUE 
-                                  | MAYOR_QUE 
-                                  | MAYOR_IGUAL_QUE 
-                                  | MENOR_IGUAL_QUE 
+operador_relacional		::= IGUAL {: RESULT = "="; :}
+                                  | DISTINTO_DE {: RESULT = "!="; :}
+                                  | MENOR_QUE {: RESULT = "<"; :}
+                                  | MAYOR_QUE {: RESULT = ">"; :}
+                                  | MAYOR_IGUAL_QUE {: RESULT = "<="; :}
+                                  | MENOR_IGUAL_QUE {: RESULT = ">="; :}
                                   ;
 
 operador_membresia		::= IN 
@@ -189,17 +250,17 @@ operador_membresia		::= IN
                                   ;
 
 
-operador_unario			::= MAS 
-                                  | MENOS 
+operador_unario			::= MAS {: RESULT = "mas"; :}
+                                  | MENOS {: RESULT = "menos"; :}
                                   ;
 
-operador_suma			::= MAS 
-                                  | MENOS 
+operador_suma			::= MAS {: RESULT = "+"; :}
+                                  | MENOS {: RESULT = "-"; :}
                                   | CONCATENAR 
                                   ;
 
-operador_multiplicacion		::= MULTIPLICACION 
-                                  | DIVISION 
+operador_multiplicacion		::= MULTIPLICACION {: RESULT = "*"; :}
+                                  | DIVISION {: RESULT = "/"; :}
                                   | MOD 
                                   | REM 
                                   ;
@@ -207,54 +268,79 @@ operador_multiplicacion		::= MULTIPLICACION
 lista_terminos			::= termino:t {: RESULT = t; :}
                                   | lista_terminos:lt operador_suma:op termino:t
                                     {:
-                                        gen. codigoFuncional += "\t\t\tlw\t$t0, _" + lt + "\n";
-                                        gen. codigoFuncional += "\t\t\tlw\t$t1, _" + t + "\n";
-                                        gen. codigoFuncional += "\t\t\tadd\t$t2, $t0, $t1\n";
+                                        RESULT = genInt.generarOperacion((String)op, (String)lt, (String)t);
                                     :}
-                                    
-
                                   ;
 
 termino				::= factor:f {: RESULT = f; :}
                                   | termino:t operador_multiplicacion:op factor:f
+                                    {:  
+                                        RESULT = genInt.generarOperacion((String)op, (String)t, (String)f);
+                                    :}
                                   ;
 
 factor				::= primario:p {: RESULT = p; :}
                                   | ABS primario:p
                                   | NOT primario:p
+                                    {:
+                                        Resultado res = new Resultado();
+                                        res.listatrue = ((Resultado)p).listafalse;
+                                        res.listafalse = ((Resultado)p).listatrue;
+                                        RESULT = res;
+                                    :}
+
                                   | primario:p1 EXPONENTE primario:p2
                                   ;
 
-primario			::= nombre:n {: RESULT = n; :}
-                                  | literal:l 
-                                  | PAR_IZQ expresion:e PAR_DER 
+primario			::= nombre:n {: RESULT = genInt.obtenerRegistroVariable(((Simbolo)n).id); :}
+                                  | literal:l {: RESULT = l; :}
+                                  | PAR_IZQ expresion:e PAR_DER {: RESULT = e; :}
                                   | llamada_funcion:lf 
                                   | literal_record:lr 
                                   ;
 
 
 literal				::= NULL
-                                  | literal_numerico:ln 
+                                  | literal_numerico:ln {: RESULT = ln; :}
                                   | literal_booleano:lb 
                                   ;
 
 literal_record                  ::= nombre:n1 PUNTO nombre:n2
                                   ;
 
-literal_numerico 		::= ENTERO_LITERAL:el
+literal_numerico 		::= ENTERO_LITERAL:el {: RESULT = ((Integer)el).toString(); :}
                                   | REAL_LITERAL:rl
                                   ;
 
 literal_booleano                ::= BOOLEAN_LITERAL:bl
+                                    {:  Resultado res = new Resultado();
+                                        if(bl){
+                                            res.listatrue = genInt.crearLista(genInt.siginstr());
+                                        }else{
+                                            res.listafalse = genInt.crearLista(genInt.siginstr());
+                                        }
+                                        genInt.generarGoto("-");
+                                        RESULT = res;
+                                    :}
                                   ;
 
 
-cuerpo_subprograma 		::=   especific_subprograma_es:ese {: gen.codigoFuncional += "main:\n"; :}
+cuerpo_subprograma 		::=   especific_subprograma_es:ese 
+                                      {: 
+                                         TablaSimbolos tablaNueva = new TablaSimbolos(superior);
+                                         env.push(superior);
+                                         pila.push(new Integer(desplazamiento));
+                                         desplazamiento = 0;
+                                         superior = tablaNueva;
+                                      :}
                                     	 parte_declarativa
                                    BEGIN
                                         secuencia_de_sentencias
-                                   END
-					designador_variante:dv PUNTO_Y_COMA
+                                   END designador_variante:dv PUNTO_Y_COMA
+                                   {:
+                                        superior = env.pop();
+                                        desplazamiento = pila.pop();
+                                   :}
 			          ;
 
 especific_subprograma_es	::= PROCEDURE IDENTIFICADOR:id IS
@@ -279,12 +365,17 @@ cuerpo				::= cuerpo_subprograma
                                   ;
 
 
-secuencia_de_sentencias		::= sentencia
-                                  | secuencia_de_sentencias sentencia
+secuencia_de_sentencias		::= sentencia:s {: RESULT = ((Resultado)s).siglista; :}
+                                  | secuencia_de_sentencias:ss M:m sentencia:s 
+                                    {: genInt.backpatch(((Resultado)ss).siglista, ((Integer)m).intValue());
+                                       Resultado res = new Resultado();
+                                       res.siglista = ((Resultado)s).siglista;
+                                       RESULT = res;
+                                    :}
                                   ;
 
-sentencia			::= lista_etiqueta sentencia_simple
-                                  | lista_etiqueta sentencia_compuesta
+sentencia			::= lista_etiqueta sentencia_simple:ss {: RESULT = ss; :}
+                                  | lista_etiqueta sentencia_compuesta:sc {: RESULT = sc; :}
 				  | error
                                   ;
 
@@ -305,7 +396,7 @@ sentencia_simple		::= sentencia_nula
                                   | sentencia_get
                                   ;
 
-sentencia_compuesta		::= sentencia_if
+sentencia_compuesta		::= sentencia_if:si {: RESULT = si; :}
                                   | sentencia_loop
                                   ;
 
@@ -316,10 +407,10 @@ sentencia_nula			::= NULL PUNTO_Y_COMA
                                   ;
 
 sentencia_asignacion		::= nombre:n ASIGNACION expresion:e PUNTO_Y_COMA
-                                    {: gen.codigoFuncional += "\t\t\tmove\t$t0, $t2\n";
-                                       gen.codigoFuncional += "\t\t\tsw\t$t0, _X\n";
+                                    {:
+                                        Simbolo sim = (Simbolo)n;
+                                        RESULT = genInt.generarAsignacion(sim.id, (String)e);
                                     :}
-
                                   | literal_record:lr ASIGNACION expresion:e PUNTO_Y_COMA
                                   ;
 
@@ -346,7 +437,12 @@ sentencia_retorno		::= RETURN expresion PUNTO_Y_COMA
                                    
                                   ;
 
-sentencia_if			::= IF:e condicion THEN secuencia_de_sentencias lista_elsif0 else_variante END IF PUNTO_Y_COMA
+sentencia_if			::= IF condicion:c THEN M:m secuencia_de_sentencias:ss lista_elsif0 else_variante END IF PUNTO_Y_COMA
+                                    {:
+                                        genInt.backpatch(((Resultado)c).listatrue, ((Integer)m).intValue());
+                                        Resultado res = new Resultado();
+                                        res.siglista = genInt.combinar(((Resultado)c).listafalse, ((Resultado)c).siglista);
+                                    :}
                                   ;
 
 lista_elsif0			::=
@@ -357,7 +453,7 @@ else_variante			::=
                                   | ELSE secuencia_de_sentencias
                                   ;
 
-condicion			::= expresion:e 
+condicion			::= expresion:e {:RESULT = e;:}
                                   ;
 
 sentencia_loop			::= iteracion_clausula_variante:icv loop_basico PUNTO_Y_COMA
@@ -393,10 +489,23 @@ lista_nombres   		::= nombre:n
                                   ;
 */
 
-declaracion_record		::= TYPE IDENTIFICADOR:id IS definicion_record:dr PUNTO_Y_COMA
+declaracion_record		::= TYPE IDENTIFICADOR:id IS 
+                                    {:
+                                        env.push(superior); superior = new TablaSimbolos(null);
+                                        pila.push(new Integer(desplazamiento)); desplazamiento = 0;
+                                    :}
+
+                                    definicion_record:dr PUNTO_Y_COMA
+                                    {:
+                                        superior.put(id, new Simbolo(id, (Tipo)dr, -1));
+                                    :}
                                   ;
 
 definicion_record		::= RECORD lista_componentes END RECORD
+                                    {: DefinicionRecord tipo = new DefinicionRecord(superior); tipo.anchura = desplazamiento;
+                                       superior = env.pop(); desplazamiento = pila.pop();
+                                       RESULT = tipo;
+                                    :}
                                   ;
 
 lista_componentes		::= lista_declaracion_componentes0
@@ -408,15 +517,23 @@ lista_declaracion_componentes0	::=
                                   ;
 
 declaracion_componente		::= IDENTIFICADOR:id DOS_PUNTOS indicacion_subtipo:ist inicializacion_opcion:io PUNTO_Y_COMA
-                                    {: gen.codigoDeclaracion += "_" + id + ": \t\t\t" + ".word ";
-                                       if(io != null){
-                                            gen.codigoDeclaracion += (Integer)io + "\n";
-                                       }else{
-                                            gen.codigoDeclaracion += "0\n";
-                                       }
+                                    {:
+                                        Tipo tipo = (Tipo)(ist);
+                                        Simbolo sim = new Simbolo(id, tipo, desplazamiento);
+                                        superior.put(id, sim);
+                                        desplazamiento += tipo.anchura;
                                     :}
-
-
+           
                                   | lista_identificador2:li2 DOS_PUNTOS indicacion_subtipo:ist inicializacion_opcion:io PUNTO_Y_COMA
                                   | IDENTIFICADOR:id DOS_PUNTOS CONSTANT indicacion_subtipo:ist inicializacion_opcion:io PUNTO_Y_COMA
+                                  ;
+
+M                               ::= {: RESULT = new Integer(genInt.siginstr()); :}
+                                  ;
+
+N                               ::= {:
+                                       Resultado res = new Resultado();
+                                       res.siglista = genInt.crearLista(genInt.siginstr());
+                                       genInt.generarGoto("-");
+                                    :}
                                   ;

@@ -19,6 +19,11 @@ public class DefinicionRecord extends Tipo{
         tabla = new TablaSimbolos(null);
     }
 
+    public DefinicionRecord(TablaSimbolos t){
+        nombre = "";
+        tabla = t;
+    }
+
     public DefinicionRecord(String n){
         nombre = n;
         tabla = new TablaSimbolos(null);
@@ -53,7 +58,7 @@ public class DefinicionRecord extends Tipo{
 
     public String toString(){
 
-        return "Es un Record!";
+        return "Record";
 
     }
 
@@ -61,8 +66,9 @@ public class DefinicionRecord extends Tipo{
     public DefinicionRecord copia(){
         DefinicionRecord ret = new DefinicionRecord();
         ret.error = super.error;
+        ret.anchura = super.anchura;
         ret.nombre = nombre;
-        ret.tabla = tabla;
+        ret.tabla = tabla.copia();
         return ret;
     }
 

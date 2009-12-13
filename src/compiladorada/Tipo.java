@@ -25,6 +25,8 @@ public abstract class Tipo {
     public int modo = IN_OUT;
     public boolean constante=false;
 
+    public int anchura;
+
     
     public abstract int mismoTipo(Object t);
 

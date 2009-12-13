@@ -15,6 +15,9 @@ public class TipoFloat extends Tipo{
 
 
     public TipoFloat(){}
+    public TipoFloat(int anch){
+        super.anchura = anch;
+    }
 
     public TipoFloat(Object v){
         valor = ((Float)v).floatValue();
@@ -43,7 +46,7 @@ public class TipoFloat extends Tipo{
 
     public String toString(){
 
-        return "Es un Float!";
+        return "Float";
 
     }
 

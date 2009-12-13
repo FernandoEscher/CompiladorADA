@@ -4,6 +4,7 @@
  */
 
 package compiladorada;
+import java.util.ArrayList;
 
 /**
  *
@@ -19,4 +20,8 @@ public class Resultado {
     public DefinicionRecord rec;
     public TablaSimbolos tabla;
     public boolean soloIn=true;
+
+    ArrayList<Integer> listatrue;
+    ArrayList<Integer> listafalse;
+    ArrayList<Integer> siglista;
 }
