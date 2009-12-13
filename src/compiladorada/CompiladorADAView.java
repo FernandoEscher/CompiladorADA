@@ -358,8 +358,7 @@ public class CompiladorADAView extends FrameView {
 
       } catch (Exception e) {
         /* do cleanup here -- possibly rethrow e */
-        for(StackTraceElement s: e.getStackTrace())
-            this.jTextArea1.setText(s + "\n");
+        e.printStackTrace();
     }
       
     }//GEN-LAST:event_jButton1ActionPerformed

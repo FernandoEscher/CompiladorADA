@@ -154,11 +154,11 @@ lista_identificador2		::= IDENTIFICADOR:id1 COMA IDENTIFICADOR:id2
                                 ;
 
 expresion 			::= relacion:r {: RESULT = r; :}
-                                  | expresion_and:ea 
-                                  | expresion_or:eo 
-                                  | expresion_xor:ex 
-                                  | expresion_andthen:eat 
-                                  | expresion_orelse:eoe 
+                                  | expresion_and:ea {: RESULT = ea; :}
+                                  | expresion_or:eo {: RESULT = eo; :}
+                                  | expresion_xor:ex {: RESULT = ex; :}
+                                  | expresion_andthen:eat {: RESULT = eat; :}
+                                  | expresion_orelse:eoe {: RESULT = eoe; :}
 				  | error
                                   ;
 
@@ -365,9 +365,13 @@ cuerpo				::= cuerpo_subprograma
                                   ;
 
 
-secuencia_de_sentencias		::= sentencia:s {: RESULT = ((Resultado)s).siglista; :}
-                                  | secuencia_de_sentencias:ss M:m sentencia:s 
-                                    {: genInt.backpatch(((Resultado)ss).siglista, ((Integer)m).intValue());
+secuencia_de_sentencias		::= sentencia:s 
+                                    {: 
+                                        RESULT = s;
+                                    :}
+                                  | secuencia_de_sentencias:ss M:m sentencia:s
+                                    {: 
+                                       genInt.backpatch(((Resultado)ss).siglista, ((Integer)m).intValue());
                                        Resultado res = new Resultado();
                                        res.siglista = ((Resultado)s).siglista;
                                        RESULT = res;
@@ -386,14 +390,14 @@ lista_etiqueta			::=
 etiqueta  			::=  ETIQUETA_IZQ IDENTIFICADOR ETIQUETA_DER
                                   ;
 
-sentencia_simple		::= sentencia_nula
-                                  | sentencia_asignacion
-                                  | sentencia_salida
-                                  | sentencia_retorno
-                                  | sentencia_goto
-                                  | sentencia_llamada_funcion
-                                  | sentencia_put
-                                  | sentencia_get
+sentencia_simple		::= sentencia_nula {: RESULT = new Resultado(); :}
+                                  | sentencia_asignacion {: RESULT = new Resultado(); :}
+                                  | sentencia_salida {: RESULT = new Resultado(); :}
+                                  | sentencia_retorno {: RESULT = new Resultado(); :}
+                                  | sentencia_goto {: RESULT = new Resultado(); :}
+                                  | sentencia_llamada_funcion {: RESULT = new Resultado(); :}
+                                  | sentencia_put {: RESULT = new Resultado(); :}
+                                  | sentencia_get {: RESULT = new Resultado(); :}
                                   ;
 
 sentencia_compuesta		::= sentencia_if:si {: RESULT = si; :}
@@ -442,6 +446,7 @@ sentencia_if			::= IF condicion:c THEN M:m secuencia_de_sentencias:ss lista_elsi
                                         genInt.backpatch(((Resultado)c).listatrue, ((Integer)m).intValue());
                                         Resultado res = new Resultado();
                                         res.siglista = genInt.combinar(((Resultado)c).listafalse, ((Resultado)c).siglista);
+                                        RESULT = res;
                                     :}
                                   ;
 

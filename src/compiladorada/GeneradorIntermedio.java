@@ -88,10 +88,12 @@ public class GeneradorIntermedio {
     }
 
     public void backpatch(ArrayList<Integer> lista, int instr){
-        for(int i=0; i<lista.size();i++){
-            codigo.get(lista.get(i).intValue()).res = "L"+instr;
+        if(lista != null){
+            for(int i=0; i<lista.size();i++){
+                codigo.get(lista.get(i).intValue()).res = "L"+instr;
+            }
+            etiquetas.add(new Integer(instr));
         }
-        etiquetas.add(new Integer(instr));
     }
 
     public ArrayList<Integer> crearLista(int i){
@@ -103,11 +105,14 @@ public class GeneradorIntermedio {
     public ArrayList<Integer> combinar(ArrayList<Integer> lista1, ArrayList<Integer> lista2){
         ArrayList<Integer> lista = new ArrayList<Integer>();
         //Nada fancy, pero no funcionaba el método addAll
-        for(Integer i: lista1)
-            lista.add(i);
+        if(lista1 !=null)
+            for(Integer i: lista1)
+                lista.add(i);
 
-        for(Integer i: lista2)
-            lista.add(i);
+        if(lista2 !=null)
+            for(Integer i: lista2)
+                lista.add(i);
+            
         return lista;
     }
 
