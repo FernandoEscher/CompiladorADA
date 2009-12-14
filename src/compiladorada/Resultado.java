@@ -24,4 +24,6 @@ public class Resultado {
     ArrayList<Integer> listatrue;
     ArrayList<Integer> listafalse;
     ArrayList<Integer> siglista;
+    ArrayList<Integer> finlista;
+    public int siginstr;
 }

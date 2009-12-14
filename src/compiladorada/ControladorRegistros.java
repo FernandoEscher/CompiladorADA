@@ -26,7 +26,7 @@ public class ControladorRegistros {
         sucio = new ArrayList<Boolean>(4);
         ident = new ArrayList<String>(4);
         asignado = new ArrayList<Boolean>(4);
-        vejez = new ArrayList<Integer>(8);
+        vejez = new ArrayList<Integer>(4);
         viva = new ArrayList<Boolean>(8);
         for(int i=0; i<4; i++){
             sucio.add(Boolean.FALSE);
@@ -41,6 +41,10 @@ public class ControladorRegistros {
     }
 
     public String obtenerRegistroVariable(String id, ArrayList<Cuadruplo> c){
+        for(int i=0; i<ident.size(); i++){
+            vejez.set(i, vejez.get(i)+1);
+        }
+
         //Retornar el registro asignado.
         for(int i=0; i<ident.size(); i++){
             if(id.equals(ident.get(i))){
@@ -55,6 +59,7 @@ public class ControladorRegistros {
                 ident.set(i, id);
                 viva.set(i, Boolean.TRUE);
                 asignado.set(i, Boolean.TRUE);
+                vejez.set(i, 0);
                  c.add(new Cuadruplo("=l", id,"$t"+i ));
                 return "$t" + i;
             }
@@ -65,6 +70,7 @@ public class ControladorRegistros {
             if(!sucio.get(i) && !viva.get(i)){
                 ident.set(i, id);
                 viva.set(i, Boolean.TRUE);
+                vejez.set(i, 0);
                 c.add(new Cuadruplo("=l", id,"$t"+i ));
                 return "$t" + i;
             }
@@ -79,7 +85,9 @@ public class ControladorRegistros {
         }
 
         viva.set(pos, Boolean.TRUE);
-        c.add(new Cuadruplo("=s", "$t"+pos, id ));
+        vejez.set(pos, 0);
+        c.add(new Cuadruplo("=s", "$t"+pos, ident.get(pos)));
+        c.add(new Cuadruplo("=l", "$t"+pos, id ));
         return "$t"+pos;
     }
 
@@ -103,23 +111,7 @@ public class ControladorRegistros {
             }
         }
     }
-/*
-    public void enterrarRegistroOperacional(String reg){
-        for(int i=4; i<viva.size();i++){
-            if(reg.equals("$t"+i)){
-                viva.set(i, Boolean.FALSE);
-            }
-        }
-    }
 
-    public void enterrarRegistroVariable(String reg){
-        for(int i=0; i<ident.size();i++){
-            if(reg.equals("$t"+i)){
-                viva.set(i, Boolean.FALSE);
-            }
-        }
-    }
-*/
     public void ensuciarRegistro(String reg){
         for(int i=0; i<sucio.size();i++){
             if(reg.equals("$t"+i)){

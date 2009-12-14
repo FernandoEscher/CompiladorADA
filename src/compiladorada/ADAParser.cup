@@ -380,7 +380,7 @@ non terminal sentencia_asignacion, sentencia_salida, sentencia_retorno, sentenci
 non terminal else_variante, loop_basico, declaracion_numero, lista_cuerpo0, nombre_variante, lista_elsif0;
 non terminal iteracion_clausula_variante, lista_nombres_variante, lista_nombres, lista_expresiones_variante, lista_expresiones, sentencia_put, sentencia_get;
 non terminal declaracion_record, definicion_record, lista_componentes, lista_declaracion_componentes0, declaracion_componente;
-non terminal sentencia_llamada_funcion, literal_booleano, literal_record;
+non terminal sentencia_llamada_funcion, literal_booleano, literal_record, expresion_booleana;
 
 
 /*---------------Gramatica--------------------*/
@@ -519,7 +519,10 @@ lista_identificador2		::= IDENTIFICADOR:id1 COMA IDENTIFICADOR:id2  {: ArrayList
                                 ;
 
 expresion 			::= relacion:r {: RESULT = r; :}
-                                  | expresion_and:ea {: RESULT = ea; :}
+                                  | expresion_booleana:eb {: RESULT = eb; :}
+                                  ;
+
+expresion_booleana              ::= expresion_and:ea {: RESULT = ea; :}
                                   | expresion_or:eo {: RESULT = eo; :}
                                   | expresion_xor:ex {: RESULT = ex; :}
                                   | expresion_andthen:eat {: RESULT = eat; :}
@@ -531,21 +534,30 @@ expresion_and			::= relacion:r1 AND relacion:r2
                                     {:  comprobacionExpresion(r1, r2, r1left, r2right,"and then", false);
                                         RESULT = new TipoBoolean();
                                     :}
-                                  | expresion_and AND relacion
+                                  | expresion_booleana:r1  AND relacion:r2
+                                     {:  comprobacionExpresion(r1, r2, r1left, r2right,"and then", false);
+                                        RESULT = new TipoBoolean();
+                                    :}
                                   ;
 
 expresion_or			::= relacion:r1 OR relacion:r2
                                     {:  comprobacionExpresion(r1, r2, r1left, r2right,"and then", false);
                                         RESULT = new TipoBoolean();
                                     :}
-                                  | expresion_or OR relacion
+                                  | expresion_booleana:r1  OR relacion:r2
+                                     {:  comprobacionExpresion(r1, r2, r1left, r2right,"and then", false);
+                                        RESULT = new TipoBoolean();
+                                    :}
                                   ;
 
 expresion_xor			::= relacion:r1 XOR relacion:r2
                                     {:  comprobacionExpresion(r1, r2, r1left, r2right,"xor", false);
                                         RESULT = new TipoBoolean();
                                     :}
-                                  | expresion_xor XOR relacion
+                                  | expresion_booleana:r1  XOR relacion:r2
+                                     {:  comprobacionExpresion(r1, r2, r1left, r2right,"and then", false);
+                                        RESULT = new TipoBoolean();
+                                    :}
                                     
                                   ;
 
@@ -553,8 +565,10 @@ expresion_andthen		::= relacion:r1 AND THEN relacion:r2
                                     {:  comprobacionExpresion(r1, r2, r1left, r2right,"and then", false);
                                         RESULT = new TipoBoolean();
                                     :}
-                                  | expresion_andthen AND THEN relacion
-                                    {: //TODO:Expresión estraña! :}
+                                  | expresion_booleana:r1  AND THEN relacion:r2
+                                     {:  comprobacionExpresion(r1, r2, r1left, r2right,"and then", false);
+                                        RESULT = new TipoBoolean();
+                                    :}
                                   ;
 
 expresion_orelse		::= relacion:r1 OR ELSE relacion:r2
@@ -562,8 +576,10 @@ expresion_orelse		::= relacion:r1 OR ELSE relacion:r2
                                         RESULT = new TipoBoolean();
                                     :}
 
-                                  | expresion_orelse OR ELSE relacion
-                                    {: //TODO:Expresión estraña! :}
+                                  | expresion_booleana:r1  OR ELSE relacion:r2
+                                     {:  comprobacionExpresion(r1, r2, r1left, r2right,"and then", false);
+                                        RESULT = new TipoBoolean();
+                                    :}
                                     
                                   ;
 

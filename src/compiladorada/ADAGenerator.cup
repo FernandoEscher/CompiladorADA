@@ -73,7 +73,7 @@ non terminal sentencia_asignacion, sentencia_salida, sentencia_retorno, sentenci
 non terminal else_variante, loop_basico, declaracion_numero, lista_cuerpo0, nombre_variante, lista_elsif0;
 non terminal iteracion_clausula_variante, lista_nombres_variante, lista_nombres, lista_expresiones_variante, lista_expresiones, sentencia_put, sentencia_get;
 non terminal declaracion_record, definicion_record, lista_componentes, lista_declaracion_componentes0, declaracion_componente;
-non terminal sentencia_llamada_funcion, literal_booleano, literal_record, M, N;
+non terminal sentencia_llamada_funcion, literal_booleano, literal_record, M, N, expresion_booleana;
 
 
 /*---------------Gramatica--------------------*/
@@ -154,7 +154,10 @@ lista_identificador2		::= IDENTIFICADOR:id1 COMA IDENTIFICADOR:id2
                                 ;
 
 expresion 			::= relacion:r {: RESULT = r; :}
-                                  | expresion_and:ea {: RESULT = ea; :}
+                                  | expresion_booleana:eb {: RESULT = eb; :}
+                                  ;
+
+expresion_booleana              ::= expresion_and:ea {: RESULT = ea; :}
                                   | expresion_or:eo {: RESULT = eo; :}
                                   | expresion_xor:ex {: RESULT = ex; :}
                                   | expresion_andthen:eat {: RESULT = eat; :}
@@ -171,7 +174,7 @@ expresion_and			::= relacion:r1 AND M:m relacion:r2
                                         RESULT = res;
                                     :}
 
-                                  | expresion_and:r1 AND M:m relacion:r2
+                                  | expresion_booleana:r1 AND M:m relacion:r2
                                     {:
                                         Resultado res =  new Resultado();
                                         genInt.backpatch(((Resultado)r1).listatrue, ((Integer)m).intValue());
@@ -190,7 +193,7 @@ expresion_or			::= relacion:r1 OR M:m relacion:r2
                                         RESULT = res;
                                     :}
 
-                                  | expresion_or:r1 OR M:m relacion:r2
+                                  | expresion_booleana:r1 OR M:m relacion:r2
                                     {:
                                         Resultado res =  new Resultado();
                                         genInt.backpatch(((Resultado)r1).listafalse, ((Integer)m).intValue());
@@ -201,16 +204,16 @@ expresion_or			::= relacion:r1 OR M:m relacion:r2
                                   ;
 
 expresion_xor			::= relacion:r1 XOR relacion:r2
-                                  | expresion_xor XOR relacion
+                                  | expresion_booleana XOR relacion
 
                                   ;
 
 expresion_andthen		::= relacion:r1 AND THEN relacion:r2
-                                  | expresion_andthen AND THEN relacion
+                                  | expresion_booleana AND THEN relacion
                                   ;
 
 expresion_orelse		::= relacion:r1 OR ELSE relacion:r2
-                                  | expresion_orelse OR ELSE relacion
+                                  | expresion_booleana OR ELSE relacion
                                   ;
 
 relacion			::= expresion_simple:es {: RESULT = es; :}
@@ -401,7 +404,7 @@ sentencia_simple		::= sentencia_nula {: RESULT = new Resultado(); :}
                                   ;
 
 sentencia_compuesta		::= sentencia_if:si {: RESULT = si; :}
-                                  | sentencia_loop
+                                  | sentencia_loop:sl {:RESULT = sl; :}
                                   ;
 
 sentencia_llamada_funcion	::= llamada_funcion PUNTO_Y_COMA
@@ -441,35 +444,79 @@ sentencia_retorno		::= RETURN expresion PUNTO_Y_COMA
                                    
                                   ;
 
-sentencia_if			::= IF condicion:c THEN M:m secuencia_de_sentencias:ss lista_elsif0 else_variante END IF PUNTO_Y_COMA
+sentencia_if			::= IF condicion:c THEN M:m secuencia_de_sentencias:ss lista_elsif0:el  END IF PUNTO_Y_COMA
                                     {:
                                         genInt.backpatch(((Resultado)c).listatrue, ((Integer)m).intValue());
                                         Resultado res = new Resultado();
-                                        res.siglista = genInt.combinar(((Resultado)c).listafalse, ((Resultado)c).siglista);
+                                        ArrayList<Integer> temp;
+                                        temp = genInt.combinar(((Resultado)el).siglista, ((Resultado)el).finlista);
+                                        ArrayList<Integer> temp2;
+                                        temp2 = genInt.combinar(temp, ((Resultado)ss).siglista);
+                                        res.siglista = temp2;
+                                        if(temp.size() != 0){
+                                            res.siglista = genInt.combinar(((Resultado)c).listafalse, temp2);
+                                        }else{
+                                            genInt.backpatch(((Resultado)c).listafalse, ((Resultado)el).siginstr);
+                                        }
+                                        RESULT = res;
+                                    :}
+
+                                  | IF condicion:c THEN M:m secuencia_de_sentencias:ss lista_elsif0 N:n ELSE M:m2 secuencia_de_sentencias:ss2 END IF PUNTO_Y_COMA
+                                    {:
+                                        genInt.backpatch(((Resultado)c).listatrue, ((Integer)m).intValue());
+                                        genInt.backpatch(((Resultado)c).listafalse, ((Integer)m2).intValue());
+                                        Resultado res = new Resultado();
+                                        ArrayList<Integer> temp;
+                                        temp = genInt.combinar(((Resultado)ss).siglista, ((Resultado)n).siglista);
+                                        res.siglista = genInt.combinar(temp, ((Resultado)ss2).siglista);
                                         RESULT = res;
                                     :}
                                   ;
 
-lista_elsif0			::=
-                                  | lista_elsif0 ELSIF condicion THEN secuencia_de_sentencias
-                                  ;
+lista_elsif0			::= {: RESULT = new Resultado(); :}
+                                  | lista_elsif0:el N:n ELSIF M:m1 condicion:c M:m2 THEN secuencia_de_sentencias:ss
+                                    {:  Resultado res = new Resultado();
+                                        if(((Resultado)el).siglista != null){
+                                            genInt.backpatch(((Resultado)el).siglista,((Integer)m1).intValue());
+                                        }
+                                        genInt.backpatch(((Resultado)c).listatrue, ((Integer)m2).intValue());
+                                        res.siglista = ((Resultado)c).listafalse;
+                                        res.finlista = genInt.combinar(((Resultado)el).finlista, ((Resultado)n).siglista);
+                                        if(((Resultado)el).siginstr == 0){
+                                            res.siginstr = ((Integer)m1).intValue();
+                                        }else{
+                                            res.siginstr = ((Resultado)el).siginstr;
+                                        }
 
-else_variante			::=
-                                  | ELSE secuencia_de_sentencias
+                                        RESULT = res;
+                                    :}
                                   ;
 
 condicion			::= expresion:e {:RESULT = e;:}
                                   ;
 
-sentencia_loop			::= iteracion_clausula_variante:icv loop_basico PUNTO_Y_COMA
+sentencia_loop			::= iteracion_clausula_variante:icv M:m loop_basico:lb PUNTO_Y_COMA
+                                    {:
+                                        genInt.backpatch(((Resultado)lb).siglista, ((Resultado)icv).siginstr);
+                                        genInt.backpatch(((Resultado)icv).listatrue, ((Integer)m).intValue());
+                                        Resultado res = new Resultado();
+                                        res.siglista = ((Resultado)icv).listafalse;
+                                        genInt.generarGoto("L" + ((Resultado)icv).siginstr);
+                                        RESULT = res;
+                                    :}
                                   ;
 
-loop_basico			::= LOOP:l secuencia_de_sentencias END LOOP
+loop_basico			::= LOOP:l secuencia_de_sentencias:ss END LOOP
+                                    {: RESULT = ss; :}
                                   ;
 
 iteracion_clausula_variante	::=
                                   | FOR nombre:n IN rango
-                                  | WHILE condicion
+                                  | WHILE M:m condicion:c
+                                    {:
+                                        ((Resultado)c).siginstr = ((Integer)m).intValue();
+                                        RESULT = c;
+                                    :}
                                   ;
 
 designador_variante		::=
@@ -540,5 +587,6 @@ N                               ::= {:
                                        Resultado res = new Resultado();
                                        res.siglista = genInt.crearLista(genInt.siginstr());
                                        genInt.generarGoto("-");
+                                       RESULT =res;
                                     :}
                                   ;
