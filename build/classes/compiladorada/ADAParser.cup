@@ -1,20 +1,39 @@
 package compiladorada;
 import java.util.Stack;
 import java.util.ArrayList;
-
-
+import java.io.FileReader;
 /* ----------------------Preliminary Declarations Section--------------------*/
+init with{: action_obj.fileName = fileName; :}
+
 
 action code {:
    public Stack pila = new Stack();
-   public TablaSimbolos tablaActual = null;
-   public boolean hasError = true;
+   public TablaSimbolos tablaActual = new TablaSimbolos(null);
+   public boolean hasError = false;
+   public String fileName;
+   public boolean hayRetorno = false;
+   public ArrayList<Tipo> retorno = new ArrayList<Tipo>();
+   public ArrayList<Integer> retLeft = new ArrayList<Integer>();
+   public ArrayList<Integer> retRight = new ArrayList<Integer>();
 
+   
 
    public String ErrorTipoIdDeclarado(int left, int right, String id){
         hasError = true;
         return "Error de tipos en la linea " + (left+1) + " columna " + (right+1)
                 + " : El identificador \"" + id + "\" ya fue declarado anteriormente en un ámbito superior.";
+   }
+
+   public String ErrorTipoParametroDeclarado(int left, int right, String id, String nomFunc){
+        hasError = true;
+        return "Error de tipos en la linea " + (left+1) + " columna " + (right+1)
+                + " : El identificador \"" + id + "\" ya está declarado como parámetro de la función " + nomFunc + ".";
+   }
+
+   public String ErrorTipoFuncionDeclarada(int left, int right, String id){
+        hasError = true;
+        return "Error de tipos en la linea " + (left+1) + " columna " + (right+1)
+                + " : La función \"" + id + "\" ya fue declarada anteriormente en un ámbito superior.";
    }
 
    public String ErrorTipoIdNoDeclarado(int left, int right, String id){
@@ -49,6 +68,15 @@ action code {:
             retorno += "float.";
         else if(t1 instanceof TipoBoolean)
             retorno += "boolean.";
+
+        if((t1 instanceof DefinicionRecord) || (t2 instanceof DefinicionRecord))
+            retorno = "Error de tipos en la linea " + (left+1) + " columna " + (right+1)
+                + " : No se pueden hacer asignaciones a definiciones de records.";
+
+        //FIXME: Ver si es verdad que no se puede asignar un record a otro.
+        if((t1 instanceof TipoRecord)|| (t2 instanceof TipoRecord))
+            retorno = "Error de tipos en la linea " + (left+1) + " columna " + (right+1)
+                + " : No se pueden hacer asignaciones a variables tipo record.";
 
         return retorno;
    }
@@ -91,6 +119,21 @@ action code {:
                 tmpT2 = (Tipo)t2;
           else
                 tmpT2 = null;
+
+
+          if(tmpT1 == null && tmpT2 == null){
+                return null;
+          }else{
+                if(tmpT2 == null){
+                    ret = tmpT1.copia();
+                    ret.error = true;
+                    return ret;
+                }else if(tmpT1 == null){
+                    ret = tmpT2.copia();
+                    ret.error = true;
+                    return ret;
+                }
+          }
 
           if(!tmpT1.error && !tmpT2.error){
                 ret = tmpT1.copia();
@@ -137,8 +180,6 @@ action code {:
 
         }else
             return true;
-
-
    }
 
     public boolean ErrorTipoEsNumerico(int left, int right, boolean es, Object t1){
@@ -168,21 +209,29 @@ action code {:
 
    }
 
-
    public Tipo comprobacionExpresion(Object p1, Object p2, int p1left, int p1right, String op, boolean esNumerico){
+            Tipo ret =  ErrorTipoDeterminarTipo(p1, p2);
+
+            if(ret == null){
+                hasError = true;
+                return null;
+           }else if(ret.error && (p1 == null || p2 == null)){
+                hasError = true;
+                System.out.println("Error de tipos en la linea " + (p1left+1) + " columna " + (p1right+1)
+                + " : No se pudo determinar el tipo de uno de los operandos.");
+                return ret;
+           }
+
            Tipo tmp1 = (Tipo)p1;
            Tipo tmp2 = (Tipo)p2;
            int error = tmp1.mismoTipo(tmp2);
 
-           Tipo ret;
 
            if(ErrorTipoEsNumerico(p1left, p1right, esNumerico, p1, p2)){
                if(error == 1){
-                    ret = ErrorTipoDeterminarTipo(p1, p2);
                     if(ret.error)
                         System.out.println(ErrorTipoOperacionNoCompatible(p1left, p1right, op, p1, p2));
                }else if(error == 2){
-                    ret = ErrorTipoDeterminarTipo(p1, p2);
                     if(ret.error)
                         System.out.println(ErrorTipoValorIrreconocible(p1left, p1right));
                }
@@ -220,22 +269,29 @@ action code {:
 
     }
 
-
-
-
     public Tipo comprobacionExpresion(Object p1, Object p2, int p1left, int p1right, String op){
-           Tipo ret;
+            Tipo ret =  ErrorTipoDeterminarTipo(p1, p2);
+
+            if(ret == null){
+                hasError = true;
+                return null;
+           }else if(ret.error && (p1 == null || p2 == null)){
+                hasError = true;
+                System.out.println("Error de tipos en la linea " + (p1left+1) + " columna " + (p1right+1)
+                + " : No se pudo determinar el tipo de uno de los operandos.");
+                return ret;
+           }
+
+           
            Tipo tmp1 = (Tipo)p1;
            Tipo tmp2 = (Tipo)p2;
            int error = tmp1.mismoTipo(tmp2);
            
 
            if(error == 1){
-                ret = ErrorTipoDeterminarTipo(p1, p2);
                 if(ret.error)
                     System.out.println(ErrorTipoOperacionNoCompatible(p1left, p1right, op, p1, p2));
            }else if(error == 2){
-                ret = ErrorTipoDeterminarTipo(p1, p2);
                 if(ret.error)
                     System.out.println(ErrorTipoValorIrreconocible(p1left, p1right));
            }
@@ -245,14 +301,12 @@ action code {:
            }
 
           return ret;
-
     }
-
 
 :};
 
 parser code {:
-
+    public String fileName;
     public void report_error(String message, Object info) {
 
         StringBuffer m = new StringBuffer("Error");
@@ -274,7 +328,7 @@ parser code {:
                     m.append(", columna "+(s.right+1));
             }
         }
-
+        action_obj.hasError=true;
         m.append(" : "+message);
 	System.err.println(m);
     }
@@ -282,6 +336,10 @@ parser code {:
         report_error(message, info);
         
 	//System.exit(1);
+    }
+
+    public void setFileName(String f){
+        fileName = f;
     }
 :};
 
@@ -319,16 +377,24 @@ non terminal expresion_orelse, relacion, rango, expresion_simple, operador_relac
 non terminal llamada_funcion, especific_subprograma_es, parte_declarativa, secuencia_de_sentencias, designador_variante, lista_declarativa_item0;
 non terminal declaracion, cuerpo, sentencia, lista_etiqueta, sentencia_simple, sentencia_compuesta, etiqueta, sentencia_nula;
 non terminal sentencia_asignacion, sentencia_salida, sentencia_retorno, sentencia_goto, sentencia_if, sentencia_loop, condicion;
-non terminal else_variante, loop_basico, declaracion_numero, lista_cuerpo0, nombre_variante, when_variante, lista_elsif0;
-non terminal iteracion_clausula_variante, lista_expresiones_variante, lista_expresiones, sentencia_put, sentencia_get; 
+non terminal else_variante, loop_basico, declaracion_numero, lista_cuerpo0, nombre_variante, lista_elsif0;
+non terminal iteracion_clausula_variante, lista_nombres_variante, lista_nombres, lista_expresiones_variante, lista_expresiones, sentencia_put, sentencia_get;
 non terminal declaracion_record, definicion_record, lista_componentes, lista_declaracion_componentes0, declaracion_componente;
-non terminal sentencia_llamada_funcion, literal_booleano;
+non terminal sentencia_llamada_funcion, literal_booleano, literal_record, expresion_booleana;
 
 
 /*---------------Gramatica--------------------*/
 start with raiz;
 
-raiz				::= lista_compilacion
+raiz				::= {: tablaActual.nombre = "$programa$principal$"; :}
+                                    lista_compilacion
+                                    {: if(!hasError){
+                                            Generator g = new Generator(new Lexer(new FileReader(fileName)));
+                                            g.setNombreArchivo(fileName);
+                                            g.parse();
+                                       }
+                                    :}
+
                                 ;
 
 lista_compilacion		::= unidad_compilacion
@@ -346,7 +412,6 @@ nombre				::= IDENTIFICADOR:id {: Simbolo res = tablaActual.get((String)id);
                                                         }else
                                                             RESULT = res.tipo;
                                                      :}
-
                                   | operador_simbolo
                                 ;
 
@@ -364,31 +429,79 @@ designador			::= IDENTIFICADOR:id {: RESULT = id; :}
 operador_simbolo		::= CADENA_LITERAL:cl {: RESULT = cl.toString(); :} 
                                 ;
 
-parte_formal_variante		::= 
-                                  | parte_formal
+parte_formal_variante		::= {: RESULT = null; :}
+                                  | parte_formal:pf
+                                    {: RESULT = pf; :}
                                 ;
 
-parte_formal			::= PAR_IZQ lista_declaracion_parametro PAR_DER
+parte_formal			::= PAR_IZQ lista_declaracion_parametro:ldp PAR_DER
+                                    {: RESULT = ldp;
+                                    :}
+
+                                    
                                 ;
 
 indicacion_subtipo		::= INTEGER:i {: RESULT = new TipoInteger(); :}
                                   | BOOLEAN:b {: RESULT = new TipoBoolean(); :}
                                   | FLOAT:f   {: RESULT  = new TipoFloat(); :}
-                                  | nombre
+                                  | nombre:n
+                                    {: if(n != null && n instanceof DefinicionRecord){
+                                            RESULT = n;
+                                       }else{
+                                            hasError = true;
+                                            System.out.println("Error de tipos en la linea " + (nleft+1) + " columna " + (nright+1)
+                                                + " : El identificador no denota la definición de un Record.");
+                                            RESULT = null;
+                                       }
+                                    :}
                                 ;
 
-lista_declaracion_parametro     ::= declaracion_parametro
-                                  | lista_declaracion_parametro PUNTO_Y_COMA declaracion_parametro
+lista_declaracion_parametro     ::= declaracion_parametro:dp
+                                    {: ArrayList<Resultado> ret = new ArrayList<Resultado>();
+                                       ret.add((Resultado)dp);
+                                       RESULT = ret; :}
+
+                                  | lista_declaracion_parametro:ldp PUNTO_Y_COMA declaracion_parametro:dp
+                                    {: ArrayList<Resultado> ret = (ArrayList<Resultado>)ldp;
+                                       ret.add((Resultado)dp);
+                                       RESULT = ret; :}
                                 ;
 
-declaracion_parametro 		::= IDENTIFICADOR DOS_PUNTOS modo indicacion_subtipo inicializacion_opcion
+declaracion_parametro 		::= IDENTIFICADOR:id DOS_PUNTOS modo:m indicacion_subtipo:ist inicializacion_opcion:io
+                                    {: Tipo res = (Tipo)ist;
+                                       Resultado ret = new Resultado();
+                                       res.modo = ((Integer)m).intValue();
+                                       if(res.modo == Tipo.IN)
+                                            res.constante = true;
+                                       else
+                                            ret.soloIn=false;
+                                       Simbolo tmpSim = new Simbolo((String)id, res);
+                                       ret.sim1 = tmpSim;
+                                       ret.left = idleft;
+                                       ret.right = idright;
+
+                                       if(io != null){
+                                           int error = res.mismoTipo(io);
+                                           if(error == 1){
+                                                System.out.println(ErrorTipoAsignacionNoCompatible(ioleft, ioright, res, io));
+                                           }
+                                           else if (error == 2){
+                                                System.out.println(ErrorTipoValorIrreconocible(ioleft, ioright));
+                                           }
+                                       }
+
+                                       RESULT = ret;
+                                    :}
+
+
                                   | lista_identificador2 DOS_PUNTOS modo indicacion_subtipo inicializacion_opcion
+                                  | error
                                 ;
 
-modo				::= 
-                                  | IN
-                                  | OUT
-                                  | IN OUT
+modo				::= {: RESULT = new Integer(Tipo.IN); :}
+                                  | IN:i {: RESULT = new Integer(Tipo.IN); :}
+                                  | OUT:o {: RESULT = new Integer(Tipo.OUT); :}
+                                  | IN OUT:io {: RESULT = new Integer(Tipo.IN_OUT); :}
                                 ;
 
 inicializacion_opcion		::= 
@@ -406,7 +519,10 @@ lista_identificador2		::= IDENTIFICADOR:id1 COMA IDENTIFICADOR:id2  {: ArrayList
                                 ;
 
 expresion 			::= relacion:r {: RESULT = r; :}
-                                  | expresion_and:ea {: RESULT = ea; :}
+                                  | expresion_booleana:eb {: RESULT = eb; :}
+                                  ;
+
+expresion_booleana              ::= expresion_and:ea {: RESULT = ea; :}
                                   | expresion_or:eo {: RESULT = eo; :}
                                   | expresion_xor:ex {: RESULT = ex; :}
                                   | expresion_andthen:eat {: RESULT = eat; :}
@@ -418,21 +534,30 @@ expresion_and			::= relacion:r1 AND relacion:r2
                                     {:  comprobacionExpresion(r1, r2, r1left, r2right,"and then", false);
                                         RESULT = new TipoBoolean();
                                     :}
-                                  | expresion_and AND relacion
+                                  | expresion_booleana:r1  AND relacion:r2
+                                     {:  comprobacionExpresion(r1, r2, r1left, r2right,"and then", false);
+                                        RESULT = new TipoBoolean();
+                                    :}
                                   ;
 
 expresion_or			::= relacion:r1 OR relacion:r2
                                     {:  comprobacionExpresion(r1, r2, r1left, r2right,"and then", false);
                                         RESULT = new TipoBoolean();
                                     :}
-                                  | expresion_or OR relacion
+                                  | expresion_booleana:r1  OR relacion:r2
+                                     {:  comprobacionExpresion(r1, r2, r1left, r2right,"and then", false);
+                                        RESULT = new TipoBoolean();
+                                    :}
                                   ;
 
 expresion_xor			::= relacion:r1 XOR relacion:r2
                                     {:  comprobacionExpresion(r1, r2, r1left, r2right,"xor", false);
                                         RESULT = new TipoBoolean();
                                     :}
-                                  | expresion_xor XOR relacion
+                                  | expresion_booleana:r1  XOR relacion:r2
+                                     {:  comprobacionExpresion(r1, r2, r1left, r2right,"and then", false);
+                                        RESULT = new TipoBoolean();
+                                    :}
                                     
                                   ;
 
@@ -440,8 +565,10 @@ expresion_andthen		::= relacion:r1 AND THEN relacion:r2
                                     {:  comprobacionExpresion(r1, r2, r1left, r2right,"and then", false);
                                         RESULT = new TipoBoolean();
                                     :}
-                                  | expresion_andthen AND THEN relacion
-                                    {: //TODO:Expresión estraña! :}
+                                  | expresion_booleana:r1  AND THEN relacion:r2
+                                     {:  comprobacionExpresion(r1, r2, r1left, r2right,"and then", false);
+                                        RESULT = new TipoBoolean();
+                                    :}
                                   ;
 
 expresion_orelse		::= relacion:r1 OR ELSE relacion:r2
@@ -449,8 +576,10 @@ expresion_orelse		::= relacion:r1 OR ELSE relacion:r2
                                         RESULT = new TipoBoolean();
                                     :}
 
-                                  | expresion_orelse OR ELSE relacion
-                                    {: //TODO:Expresión estraña! :}
+                                  | expresion_booleana:r1  OR ELSE relacion:r2
+                                     {:  comprobacionExpresion(r1, r2, r1left, r2right,"and then", false);
+                                        RESULT = new TipoBoolean();
+                                    :}
                                     
                                   ;
 
@@ -484,9 +613,6 @@ expresion_simple		::= lista_terminos:lt {: RESULT = lt; :}
                                          }else
                                              RESULT = lt;
                                     :}
-
-                                 
-                                  | llamada_funcion
                                   ;
 
 operador_relacional		::= IGUAL {: RESULT = "="; :}
@@ -550,17 +676,44 @@ factor				::= primario:p {: RESULT = p; :}
                                   ;
 
 primario			::= nombre:n {: RESULT = n; :}
- //                                 | asignador
                                   | literal:l {: RESULT = l; :}
                                   | PAR_IZQ expresion:e PAR_DER {: RESULT = e; :}
+                                  | llamada_funcion:lf {: RESULT = lf; :}
+                                  | literal_record:lr {: RESULT = lr; :}
                                   ;
 
-//asignador			::= NEW nombre
-//                                  ;
 
 literal				::= NULL {: RESULT = null; :}
                                   | literal_numerico:ln {: RESULT = ln; :}
                                   | literal_booleano:lb {: RESULT = lb; :}
+                                  ;
+
+literal_record                  ::= nombre:n1
+                                    {: if(n1 instanceof TipoRecord){
+                                            TipoRecord rec = (TipoRecord)n1;
+
+                                            TablaSimbolos tmpActual = tablaActual;
+                                            tablaActual = rec.definicion.tabla;
+
+                                            Resultado res = new Resultado();
+                                            res.tabla = tmpActual;
+                                            RESULT = res;
+                                       }else{
+                                             hasError = true;
+                                             System.out.println("Error en la linea "+ (n1left+1) + " columna "
+                                             + (n1right+1) + " : Esta variable no es de tipo Record.");
+                                             RESULT = null;
+                                       }
+                                    :}
+
+                                    PUNTO nombre:n2
+                                    {:
+                                        if(RESULT != null){
+                                            tablaActual = ((Resultado)RESULT).tabla;
+
+                                            RESULT = n2;
+                                        }
+                                    :}
                                   ;
 
 literal_numerico 		::= ENTERO_LITERAL:el  {: RESULT = new TipoInteger(el.intValue()); :}
@@ -574,38 +727,162 @@ literal_booleano                ::= BOOLEAN_LITERAL:bl {: RESULT = new TipoBoole
 
 cuerpo_subprograma 		::=   especific_subprograma_es:ese  
                                     	 parte_declarativa					
-                                   BEGIN {:pila.push("BEGIN");:}
+                                   BEGIN 
                                         secuencia_de_sentencias
-                                   END {:pila.pop();:}
-					designador_variante:dv PUNTO_Y_COMA
-                                    {:if(!ese.equals(dv))
+
+                                   END 
+                                   {: pila.pop();
+
+                                      if(((Resultado)ese).tipo != null){
+                                         TipoFuncion tipoRet = (TipoFuncion)(((Resultado)ese).tipo);
+                                         if(tipoRet.retorno != null){
+                                            if(hayRetorno){
+                                                for(int i =0; i<retorno.size(); i++){
+                                                    int mismo = tipoRet.retorno.mismoTipo(retorno.get(i));
+                                                    if(mismo == 1){
+                                                        hasError = true;
+                                                        System.out.println("Error en la linea "+ (retLeft.get(i)+1) + " columna "
+                                                        + (retRight.get(i)+1) + " : El tipo de retorno no es compatible con el especificado en la funcion.");
+                                                    }else if(mismo == 2){
+                                                        hasError = true;
+                                                        System.out.println("Error en la linea "+ (retLeft.get(i)+1) + " columna "
+                                                        + (retRight.get(i)+1) + " : No se ha podido determinar el tipo de la sentencia de retorno.");
+                                                    }
+                                                }
+                                            }else{
+                                                hasError = true;
+                                                System.out.println("Error en la linea "+ (eseleft+1) + " columna "
+                                                + (eseright+1) + " : No hay una sentencia de retorno dentro de la función.");
+                                            }
+                                         }else{
+                                            if(hayRetorno){
+                                                hasError = true;
+                                                for(int i =0; i<retorno.size(); i++){
+                                                    System.out.println("Error en la linea "+ (retLeft.get(i)+1) + " columna "
+                                                    + (retRight.get(i)+1) + " : No puede haber una sentencia de retorno con tipo en un procedimiento.");
+                                                }
+                                            }
+                                         }
+                                      }
+
+                                      retorno = new ArrayList<Tipo>();
+                                      hayRetorno =false;
+                                      retLeft = new ArrayList<Integer>();
+                                      retRight = new ArrayList<Integer>();
+                                   :}
+
+                                   designador_variante:dv PUNTO_Y_COMA
+                                    {:if(!((Resultado)ese).valex.equals(dv)){
+                                        hasError = true;
                                         System.out.println("Error en la linea "+ (dvleft+1) + " columna "
-                                        + (dvright+1) + " : Se esperaba fin del procedimiento " + ese);
-                                      
+                                        + (dvright+1) + " : Se esperaba fin del procedimiento " + ((Resultado)ese).valex);
+                                       }
                                       tablaActual = tablaActual.padre;
 
 
                                     :}
 			          ;							
 
-especific_subprograma_es	::= PROCEDURE IDENTIFICADOR:id IS
-                                    {: RESULT = id;
+especific_subprograma_es	::= PROCEDURE IDENTIFICADOR:id IS 
+                                   {:   pila.push(id);
+
+                                        TipoFuncion tipoActual = new TipoFuncion();
+                                        Simbolo actualSimbolo = new Simbolo((String)id, tipoActual);
+
+                                        boolean done = tablaActual.put((String)id, actualSimbolo);
+
+                                        TablaSimbolos tablaTmp = new TablaSimbolos(tablaActual);
+                                        tablaTmp.nombre = id;
+                                        tablaActual = tablaTmp;
+
+                                        if(!done){
+                                            System.out.println(ErrorTipoFuncionDeclarada(idleft, idright, (String)id));
+                                        }
+
+                                        Resultado retorno = new Resultado();
+                                        retorno.valex = id;
+                                        retorno.tipo = tipoActual;
+                                        RESULT =  retorno;
+                                    :}
+
+                                  | PROCEDURE IDENTIFICADOR:id parte_formal:pf IS
+                                    {: 
+                                       pila.push(id);
+
+                                       ArrayList<Resultado> tiposParams = (ArrayList<Resultado>)pf;
+
+                                       TipoFuncion tipoActual = new TipoFuncion();
+                                       Simbolo actualSimbolo = new Simbolo((String)id, tipoActual);
+
+                                       boolean done = tablaActual.put((String)id, actualSimbolo);
+
                                        TablaSimbolos tablaTmp = new TablaSimbolos(tablaActual);
                                        tablaTmp.nombre = id;
                                        tablaActual = tablaTmp;
+
+                                       if(done){
+                                            for(Resultado s: tiposParams){
+                                                done = tablaActual.put(s.sim1.id, s.sim1);
+                                                if (!done){
+                                                    hasError = true;
+                                                    System.out.println(ErrorTipoParametroDeclarado(s.left, s.right, s.sim1.id, (String)id));
+                                                }else{
+                                                    tipoActual.parametros.add(s.sim1);
+                                                }
+                                            }
+                                      }else{
+                                            System.out.println(ErrorTipoFuncionDeclarada(idleft, idright, (String)id));
+                                      }
+
+                                      Resultado retorno = new Resultado();
+                                      retorno.valex = id;
+                                      retorno.tipo = tipoActual;
+                                      RESULT =  retorno;
+                                       
+
                                     :}
 
-                                  | PROCEDURE IDENTIFICADOR:id parte_formal IS
-                                    {: RESULT = id;
-                                       TablaSimbolos tablaTmp = new TablaSimbolos(tablaActual);
-                                       tablaTmp.nombre = id;
-                                       tablaActual = tablaTmp; :}
+                                  | FUNCTION designador:ds parte_formal_variante:pfv RETURN  indicacion_subtipo:ist IS
+                                    {: pila.push(ds);
 
-                                  | FUNCTION designador:ds parte_formal_variante RETURN indicacion_subtipo IS
-                                    {: RESULT = ds;
+                                       TipoFuncion tipoActual = new TipoFuncion();
+                                       tipoActual.retorno = (Tipo)ist;
+                                       Simbolo actualSimbolo = new Simbolo((String)ds, tipoActual);
+                                       boolean done = tablaActual.put((String)ds, actualSimbolo);
+
                                        TablaSimbolos tablaTmp = new TablaSimbolos(tablaActual);
                                        tablaTmp.nombre = (String)ds;
-                                       tablaActual = tablaTmp;:}
+                                       tablaActual = tablaTmp;
+
+                                       if(done){
+                                            if(pfv != null){
+                                                ArrayList<Resultado> tiposParams = (ArrayList<Resultado>)pfv;
+
+                                                for(Resultado s: tiposParams){
+                                                    if(s.soloIn){
+                                                        done = tablaActual.put(s.sim1.id, s.sim1);
+                                                        if (!done){
+                                                            hasError = true;
+                                                            System.out.println(ErrorTipoParametroDeclarado(s.left, s.right, s.sim1.id, (String)ds));
+                                                        }else{
+                                                            tipoActual.parametros.add(s.sim1);
+                                                        }
+                                                    }else{
+                                                        hasError = true;
+                                                        System.out.println("Error de tipos en la linea " + (pfvleft+1) + " columna " + (pfvright+1)
+                                                        + " : Las funciones solo permiten parámetros de tipo IN.");
+                                                    }
+                                                }
+                                            }
+                                       }else{
+                                            System.out.println(ErrorTipoFuncionDeclarada(dsleft, dsright, (String)ds));
+                                       }
+
+                                       Resultado retorno = new Resultado();
+                                       retorno.valex = (String)ds;
+                                       retorno.tipo = tipoActual;
+                                       RESULT =  retorno;
+                                    :}
 				  ;
 
 parte_declarativa 		::= lista_declarativa_item0
@@ -662,10 +939,22 @@ sentencia_nula			::= NULL PUNTO_Y_COMA
                                   ;
 
 sentencia_asignacion		::= nombre:n ASIGNACION expresion:e PUNTO_Y_COMA
-                                    {: comprobacionExpresion(n, e, eleft, eright, "de asignación"); :}
-                                  ;
+                                    {:  Tipo t;
+                                        if(n instanceof Tipo){
+                                            t = (Tipo)n;
+                                            if(t.constante){
+                                                hasError = true;
+                                               System.out.println("Error de tipos en la linea " + (nleft+1) + " columna " + (nright+1)
+                                                        + " : No se pueden hacer asignaciones a variables constantes.");
+                                            }else{
+                                                comprobacionExpresion(n, e, eleft, eright, "de asignación");
+                                            }
+                                        }else
+                                                comprobacionExpresion(n, e, eleft, eright, "de asignación"); 
+                                    :}
 
-sentencia_salida		::= EXIT nombre_variante when_variante PUNTO_Y_COMA
+                                  | literal_record:lr ASIGNACION expresion:e PUNTO_Y_COMA
+                                    {: comprobacionExpresion(lr, e, eleft, eright, "de asignación"); :}
                                   ;
 
 sentencia_goto			::= GOTO nombre PUNTO_Y_COMA
@@ -677,16 +966,40 @@ sentencia_put 			::= PUT PAR_IZQ lista_expresiones_variante PAR_DER PUNTO_Y_COMA
 sentencia_get 			::= GET PAR_IZQ lista_expresiones_variante PAR_DER PUNTO_Y_COMA
                                   ;
 
-nombre_variante			::= 
-                                  | nombre
+lista_expresiones_variante	::= {: RESULT = null; :}
+                                  | lista_expresiones:le
+                                    {: RESULT = le; :}
                                   ;
 
-when_variante			::= 
-                                  | WHEN condicion
+lista_expresiones  		::= expresion:e
+                                    {: ArrayList<Tipo> resultado =  new ArrayList<Tipo>();
+                                       resultado.add((Tipo)e);
+                                       RESULT = resultado;
+                                    :}
+
+
+                                  | lista_expresiones:le COMA expresion:e
+                                    {: ((ArrayList<Tipo>) le).add((Tipo)e);
+                                       RESULT = le;
+                                    :}
                                   ;
 
-sentencia_retorno		::= RETURN PUNTO_Y_COMA
-                                  | RETURN expresion PUNTO_Y_COMA
+
+sentencia_retorno		::= RETURN expresion:e PUNTO_Y_COMA
+                                    {:
+                                        if(e != null){
+                                            retorno.add((Tipo)e);
+                                        }else{
+                                            hasError=true;
+                                            System.out.println("Error de tipos en la linea " + (eleft+1) + " columna " + (eright+1)
+                                                    + ": No se ha podido determinar el tipo del retorno");
+                                        }
+                                        hayRetorno = true;
+                                        retLeft.add(new Integer(eleft));
+                                        retRight.add(new Integer(eright));
+                                    :}
+
+                                  | RETURN PUNTO_Y_COMA
                                   ;
 
 sentencia_if			::= IF:e {: pila.push("IF"); :}
@@ -705,21 +1018,31 @@ else_variante			::=
 condicion			::= expresion:e {: RESULT = e; :}
                                   ;
 
-sentencia_loop			::= iteracion_clausula_variante loop_basico PUNTO_Y_COMA
-                                  | IDENTIFICADOR DOS_PUNTOS iteracion_clausula_variante loop_basico IDENTIFICADOR PUNTO_Y_COMA
+sentencia_loop			::= iteracion_clausula_variante:icv loop_basico PUNTO_Y_COMA
+                                    {: if(icv != null){
+                                            ((Tipo)icv).constante = false;
+                                       }
+
+                                    :}
                                   ;
 
 loop_basico			::= LOOP:l {: pila.push("LOOP"); :} secuencia_de_sentencias END LOOP {: pila.pop(); :}
                                   ;
 
 iteracion_clausula_variante	::= 
-                                  | FOR IDENTIFICADOR IN rango
-                                  | FOR IDENTIFICADOR IN REVERSE rango
+                                  | FOR nombre:n IN rango
+                                    {:  if(n != null){
+                                            if(!((Tipo)n).constante){
+                                                ((Tipo)n).constante = true;
+                                                RESULT = n;
+                                            }
+                                         }
+                                    :}
                                   | WHILE condicion
                                   ;
 
 designador_variante		::=
-                                  | designador:ds {:RESULT = ds;:}
+                                  | designador:ds {: RESULT = ds; :}
                                   ;
 
 declaracion                     ::= declaracion_subprograma
@@ -728,18 +1051,92 @@ declaracion                     ::= declaracion_subprograma
 				  | error
                                   ;
 
-llamada_funcion			::= nombre PAR_IZQ lista_expresiones_variante PAR_DER
+llamada_funcion			::= nombre:n PAR_IZQ lista_expresiones_variante:lnv PAR_DER
+                                    {: if(n instanceof TipoFuncion){
+                                            
+                                            TipoFuncion tipoActual = (TipoFuncion)n;
+                                            
+                                            if(lnv == null){
+                                                if(tipoActual.parametros.size() != 0){
+                                                    hasError = true;
+                                                    System.out.println("Error de tipos en la linea " + (nleft+1) + " columna " + (nright+1)
+                                                        + " : La función no recibe parámetros y " + tipoActual.parametros.size() + " se esparaban.");
+                                                }
+
+                                            }else{
+                                                ArrayList<Tipo> params = (ArrayList<Tipo>)lnv;
+                                                if(params.size() != tipoActual.parametros.size()){
+                                                    hasError = true;
+                                                    System.out.println("Error de tipos en la linea " + (nleft+1) + " columna " + (nright+1)
+                                                        + " : La función recibe " + tipoActual.parametros.size() + " parámetros y "
+                                                        + params.size() + " fueron dados.");
+                                                }else{
+                                                    int error;
+                                                    for(int i=0; i<params.size(); i++){
+                                                        error = params.get(i).mismoTipo(tipoActual.parametros.get(i).tipo);
+                                                        if(error == 1){
+                                                            System.out.println(ErrorTipoAsignacionNoCompatible(lnvleft, lnvright, tipoActual.parametros.get(i).tipo, params.get(i)));
+                                                        }else if(error == 2){
+                                                            System.out.println(ErrorTipoValorIrreconocible(lnvleft, lnvright));
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            RESULT = tipoActual.retorno;
+                                            
+                                       }else if(n != null){
+                                            hasError = true;
+                                            System.out.println("Error de tipos en la linea " + (nleft+1) + " columna " + (nright+1)
+                                                + " : Esta no es una variable de función.");
+                                       }else{
+                                            hasError = true;
+                                            System.out.println("Error de tipos en la linea " + (nleft+1) + " columna " + (nright+1)
+                                                + " : Esta función no ha sido delcarada.");
+                                       }
+                                    :}
+                                  ;
+/*
+lista_nombres_variante	::=         {: RESULT = null; :}
+                                  | lista_nombres:ln
+                                    {: RESULT = ln; :}
                                   ;
 
-lista_expresiones_variante	::=
-                                  | lista_expresiones
-                                  ;
+lista_nombres   		::= nombre:n
+                                    {: ArrayList<Tipo> resultado =  new ArrayList<Tipo>();
+                                       resultado.add((Tipo)n);
+                                       RESULT = resultado;
+                                    :}
 
-lista_expresiones		::= expresion
-                                  | lista_expresiones COMA expresion
-                                  ;
 
-declaracion_record		::= TYPE IDENTIFICADOR IS definicion_record PUNTO_Y_COMA
+                                  | lista_nombres:ln COMA nombre:n
+                                    {: ((ArrayList<Tipo>) ln).add((Tipo)n);
+                                       RESULT = ln;
+                                    :}
+                                  ;
+*/
+
+declaracion_record		::= TYPE IDENTIFICADOR:id IS
+                                    {: DefinicionRecord rec = new DefinicionRecord(id);
+                                       TablaSimbolos tmpActual = tablaActual;
+                                       tablaActual = rec.tabla;
+
+                                       Resultado res = new Resultado();
+                                       res.rec = rec;
+                                       res.tabla = tmpActual;
+                                       RESULT = res;
+                                    :}
+
+                                    definicion_record:dr PUNTO_Y_COMA
+                                    {: tablaActual = ((Resultado)RESULT).tabla;
+                                       Simbolo tmpSim = new Simbolo((String)id, ((Resultado)RESULT).rec);
+                                       boolean done = tablaActual.put((String)id, tmpSim);
+
+                                       if (!done){
+                                           hasError = true;
+                                           System.out.println(ErrorTipoIdDeclarado(idleft, idright, (String)id));
+                                       }
+                                    :}
                                   ;
 
 definicion_record		::= RECORD lista_componentes END RECORD
@@ -754,7 +1151,15 @@ lista_declaracion_componentes0	::=
                                   ;
 
 declaracion_componente		::= IDENTIFICADOR:id DOS_PUNTOS indicacion_subtipo:ist inicializacion_opcion:io PUNTO_Y_COMA
-                                    {: Tipo res = (Tipo)ist;
+                                    {: Tipo res;
+
+                                       if(ist instanceof DefinicionRecord){
+                                            res = new TipoRecord((String)id, (DefinicionRecord)ist);
+                                            
+                                       }else{
+                                            res = (Tipo)ist;
+                                       }
+
                                        Simbolo tmpSim = new Simbolo((String)id, res);
                                        boolean done = tablaActual.put((String)id, tmpSim);
 
@@ -779,10 +1184,17 @@ declaracion_componente		::= IDENTIFICADOR:id DOS_PUNTOS indicacion_subtipo:ist i
 
 
                                   | lista_identificador2:li2 DOS_PUNTOS indicacion_subtipo:ist inicializacion_opcion:io PUNTO_Y_COMA
-                                    {: Tipo res = (Tipo)ist;
+                                    {: Tipo res = new TipoRecord();
+
                                        ArrayList<String> ids =  (ArrayList<String>)li2;
                                        ArrayList<Tipo> tipos = new ArrayList<Tipo>();
                                        for(String s: ids){
+                                          if(ist instanceof DefinicionRecord){
+                                            ((TipoRecord)res).nombreRecord = s;
+                                            ((TipoRecord)res).definicion = (DefinicionRecord)ist;
+                                          }else{
+                                            res = (Tipo)ist;
+                                          }
                                           Simbolo tmpSim = new Simbolo((String)s, res);
                                           boolean done = tablaActual.put((String)s, tmpSim);
 
@@ -801,6 +1213,41 @@ declaracion_componente		::= IDENTIFICADOR:id DOS_PUNTOS indicacion_subtipo:ist i
                                             }
                                         }
                                     :}
+
+                                    | IDENTIFICADOR:id DOS_PUNTOS CONSTANT indicacion_subtipo:ist inicializacion_opcion:io PUNTO_Y_COMA
+                                    {: Tipo res;
+
+                                       if(ist instanceof DefinicionRecord){
+                                            res = new TipoRecord((String)id, (DefinicionRecord)ist);
+
+                                       }else{
+                                            res = (Tipo)ist;
+                                       }
+
+                                       res.constante = true;
+                                       Simbolo tmpSim = new Simbolo((String)id, res);
+                                       boolean done = tablaActual.put((String)id, tmpSim);
+
+                                       if (!done){
+                                           hasError = true;
+                                           System.out.println(ErrorTipoIdDeclarado(idleft, idright, (String)id));
+                                       } else
+
+                                       if(io != null){
+                                           int error = res.mismoTipo(io);
+                                           if(error == 1){
+                                                System.out.println(ErrorTipoAsignacionNoCompatible(ioleft, ioright, res, io));
+                                           }
+                                           else if (error == 2){
+                                                System.out.println(ErrorTipoValorIrreconocible(ioleft, ioright));
+                                           }
+                                       }else{
+                                           hasError=true;
+                                           System.out.println("Error de tipos en la linea " + (idleft+1) + " columna " + (idright+1)
+                                                + " : No se ha asignado un valor a la variable constante.");
+                                       }
+
+
+
+                                    :}
                                   ;
-
-

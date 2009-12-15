@@ -58,6 +58,11 @@ public class GeneradorIntermedio {
 
      }
 
+     public String obtenerRegistroOperacion(){
+        return contReg.obtenerRegistroOperacion();
+
+     }
+
     public String generarOperacion(String op, String arg1, String arg2){
         String reg = contReg.obtenerRegistroOperacion();
         codigo.add(new Cuadruplo((String)op, (String)arg1,(String)arg2, reg));
@@ -67,12 +72,19 @@ public class GeneradorIntermedio {
 
     }
 
+    public String generarMovimientoPila(String val, boolean push){
+        if(push)
+            codigo.add(new Cuadruplo("push", val));
+        else
+            codigo.add(new Cuadruplo("pop", val));
+        return val;
+    }
+
     public String generarAsignacion(String arg1, String arg2){
-        String reg = contReg.obtenerRegistroOperacion();
         codigo.add(new Cuadruplo("=", (String)arg2,(String)arg1));
         contReg.enterrarRegistro(arg1);
         contReg.enterrarRegistro(arg2);
-        return reg;
+        return arg1;
 
     }
 

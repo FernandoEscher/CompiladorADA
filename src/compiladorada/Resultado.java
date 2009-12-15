@@ -26,4 +26,5 @@ public class Resultado {
     ArrayList<Integer> siglista;
     ArrayList<Integer> finlista;
     public int siginstr;
+    public String iteradorFor;
 }

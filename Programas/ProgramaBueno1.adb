@@ -7,6 +7,7 @@ procedure ProgramaBueno1 (x: out integer) is
    Mayor:integer;
    procedure Sueldo2 (v:in integer) is
       B:integer;
+      P:float;
       function Sueldo3 (s: integer; y: boolean) return integer is
           C:float;
 	  M: integer := 5;
@@ -21,7 +22,8 @@ procedure ProgramaBueno1 (x: out integer) is
           r:tipos;
       begin
           r.f := 5.6;
-          C:=((5.9 / 4.6)*(8.7+r.f)-5.3)**8.4;
+	  P:=I;
+          C:=((5.9 / 4.6)*(8.7+r.i)-5.3)**8.4;
 	  M:=64*98;
 	  if ((5>=5) and (5<=6)) or (7>6) then
              C:=(9.0**5.6);
